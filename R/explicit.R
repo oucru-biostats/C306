@@ -38,7 +38,7 @@ explicit.lm <- function(fit){
   mf <- eval(mf, parent.frame())
   y <- model.response(mf)
   x <- model.matrix(lm)
-  new_data <- cbind(mf, model.matrix(lm)[,!colnames(x) %in% c('(Intercept)', colnames(mf))])
+  new_data <- cbind(mf, model.matrix(lm)[,!colnames(x) %in% c('(Intercept)', colnames(mf)), drop=FALSE])
   x_names <- paste0('`', gsub('(^`)|(`$)', '', colnames(x)[-1]), '`')
   names(x_names) <- colnames(x)[-1]
   # browser()
