@@ -269,7 +269,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   #### summary statistics
   if ((is.null(z) & any(continuous)) | (!is.null(z) & !is.factor(z))) {
     footer.con <- paste0(switch(statistics,
-                                med.IQR = "median (IQR)",
+                                med.IQR = "median (1st and 3rd quartiles))",
                                 med.90  = "median (90% range)",
                                 med.range = "median (range)",
                                 mean.sd = "mean (sd)"),
@@ -1000,7 +1000,7 @@ sstable.survcomp <- function(model, data, add.risk = TRUE, add.prop.haz.test = T
 
   # add number of events and risks
   fit.surv0 <- survival::survfit(update(model, new = as.formula(paste0(". ~ ", arm.var))), data = data)
-  fit.surv <- summary(fit.surv0, time = Inf, extend = TRUE)
+  fit.surv <- summary(fit.surv0, time = .Machine$integer.max, extend = TRUE)
 
   if (length(unique(data[, arm.var])) < length(arm.names)) {
     tmp <- fit.surv$table
