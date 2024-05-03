@@ -1170,7 +1170,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data, digits =
     result <- rbind(result, "")
     result[nrow(result), 1] <- ifelse(is.null(attr(data[, subgroup.char[k]], "label")),
                                       subgroup.char[k], attr(data[, subgroup.char[k]], "label"))
-    ia.pval <- anova(survival::coxph(ia.model, data = data), survival::coxph(main.model, data = data), test = "Chisq")[2, "P(>|Chi|)"]
+    ia.pval <- anova(survival::coxph(ia.model, data = data), survival::coxph(main.model, data = data), test = "Chisq")[2, "Pr(>|Chi|)"]
     result[nrow(result), ncol(result)] <- format.pval(ia.pval, digits = pdigits, eps = pcutoff)
 
     # Add results for each subgroup level
