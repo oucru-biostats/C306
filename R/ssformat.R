@@ -546,17 +546,30 @@ as_sstable.default <- function(x, flextable = FALSE, ...){
 #' @export
 as_sstable.list <- function(x, flextable = FALSE, ...){
   out <- list()
-  out$table <- as.matrix(x$table)
-  out$table <- rbind(colnames(out$table), out$table)
-  out$table <- cbind(rownames(out$table), out$table)
-  colnames(out$table) <- rownames(out$table) <- NULL
+
+  header <- if (inherits(x$header, 'matrix') x$header else do.call(rbind, x$header)
+  rownames(header) = paste0('header', seq_len(nrow(header)))
+
+  if (inherits(x$body), 'list'){
+    body <- lapply(seq_along(x$body), function(i){
+      cont <- x$body[[i]]
+      title <- names(x$body)[[i]] 
+      if (is.null(title)) title <- ''
+      title <- rep(title, ncol(cont))
+      sec <- rbind(title, cont)
+      rownames(sec) = c(paste0('section', i), paste0('body',i,  seq_len(nrow(cont))))
+      if (title == '' & i == 1) sec <- sec[-1,]
+      sec
+    })
+    body <- do.call(rbind, body)
+  } else {
+      body <- as.matrix(x$body)
+      rownames(body) <- paste0('body', seq_len(nrow(table)))
+  }
+ 
+  out$table <- rbind(header, body)
   out$footer <- x$footer
   class(out$table) <- c('ss_tbl', 'matrix')
-
-  if (flextable){
-    logist_summary.sstable <- ss_flextable(out$table, footer = out$footer, ...)
-    return(logist_summary.sstable)
-  }
 
   out
 }
@@ -622,4 +635,3 @@ as_sstable.subgroup_logist_summary <- function(x, include_footnote = TRUE, flext
   if (include_footnote) return(list(table = sstable, footer = footer))
   sstable
 }
-
