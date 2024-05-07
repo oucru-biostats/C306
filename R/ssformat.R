@@ -538,7 +538,7 @@ as_sstable.default <- function(x, flextable = FALSE, ...){
   if (length(attr(x, 'footer'))) out$footer <- attr(x, 'footer')
 
   class(out) <- c('ss_tbl', 'matrix')
-  if (flextable) ss_flextable(out, ...)
+  if (flextable) return(ss_flextable(out, ...))
   return(out)
 }
 
@@ -564,14 +564,15 @@ as_sstable.list <- function(x, flextable = FALSE, ...){
     body <- do.call(rbind, body)
   } else {
       body <- as.matrix(x$body)
-      rownames(body) <- paste0('body', seq_len(nrow(table)))
+      rownames(body) <- paste0('body', seq_len(nrow(body)))
   }
  
   out$table <- rbind(header, body)
   out$footer <- x$footer
   class(out$table) <- c('ss_tbl', 'matrix')
 
-  out
+  if (flextable) return(ss_flextable(out, ...))
+  return(out)
 }
 
 #' @rdname as_sstable
