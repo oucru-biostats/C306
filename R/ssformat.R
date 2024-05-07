@@ -550,7 +550,7 @@ as_sstable.list <- function(x, flextable = FALSE, ...){
   header <- if (inherits(x$header, 'matrix')) x$header else do.call(rbind, x$header)
   rownames(header) = paste0('header', seq_len(nrow(header)))
 
-  if (inherits(x$body), 'list'){
+  if (inherits(x$body, 'list')){
     body <- lapply(seq_along(x$body), function(i){
       cont <- x$body[[i]]
       title <- names(x$body)[[i]] 
