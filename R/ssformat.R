@@ -547,7 +547,7 @@ as_sstable.default <- function(x, flextable = FALSE, ...){
 as_sstable.list <- function(x, flextable = FALSE, ...){
   out <- list()
 
-  header <- if (inherits(x$header, 'matrix') x$header else do.call(rbind, x$header)
+  header <- if (inherits(x$header, 'matrix')) x$header else do.call(rbind, x$header)
   rownames(header) = paste0('header', seq_len(nrow(header)))
 
   if (inherits(x$body), 'list'){
