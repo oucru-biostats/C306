@@ -117,6 +117,8 @@ ss_format <- function(sstable, header = c(), section = c(), body = c(), template
   if (length(header)) sstable <- ss_header(sstable, rows = header)
   if (length(body)) sstable <- ss_body(sstable, rows = body)
   if (length(section)) sstable <- ss_section(sstable, rows = section)
+  if (sum(sapply(c('header', 'section', 'body'), grepl, x=rownames(sstable), fixed=TRUE)) != nrow(sstable)) 
+    stop('Some row are not classified as header, section, or body. Perhaps you want to set .guess to TRUE?')
   class(sstable) <- c('formatted_sstable', class(sstable))
   sstable
 }
@@ -132,7 +134,7 @@ ss_guess_format.default <- function(sstable){
                     r <- sstable[i,]
                     if (isTRUE(grepl("header", rownames(sstable)[i]))) return("header")
                     if (all(is.na(suppressWarnings(as.numeric(r)))) && i <= 2) return("header")
-                    if (sum(r == '') == ncol(sstable)-1) return("section")
+                    if (sum(r == '', na.rm=TRUE) == ncol(sstable)-1) return("section")
                     return("body")
                   })
   return(guess)
@@ -143,7 +145,7 @@ ss_guess_format.ae_tbl <- function(sstable){
                   function(i){
                     if (i <= 2) return('header')
                     r <- sstable[i, ]
-                    if (sum(r == '') >= 2) return('section')
+                    if (sum(r == '', na.rm=TRUE) >= 2) return('section')
                     return('body')
                   })
   return(guess)
@@ -241,7 +243,7 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
     for (i in seq_along(ss.header2)[-1])
       ft <- flextable::add_header_row(ft, values = ss.header2[[i]], top = F)
 
-  ft <- flextable::merge_h(ft, part = "header")
+  ft <- flextable::merge_h(ft, i = 1:(length(ss.header2)-1), part = "header")
   ft <- flextable::merge_v(ft, part = "header")
 
   ## footer format
@@ -254,7 +256,7 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
   for (k in section){
     ft <- flextable::bold(ft, i = k-length(header), j = 1:ncol(sstable), part = 'body')
     ### merging cells that from the left if the whole row is empty
-    if (all(sstable[k, -1] == ''))
+    if (all(sstable[k, -1] == '') %in% TRUE)
       ft <- flextable::merge_at(ft, i = k, j = 1:ncol(sstable), part = 'body')
   }
 
@@ -263,9 +265,20 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
   ft <- flextable::autofit(ft)
   ### alignment
   ft <- flextable::align(ft, j = 1, align = "left", part = "all")
+  
+  ft_sstheme(ft)
+}
+
+
+#' Flextable theming for sstable
+#' 
+#' @description Theming flextable for sstable
+#' @param ft flextable
+#' @export 
+ft_sstheme <- function(ft){
   ### faces of header
   ft <- flextable::bold(ft, part = "header")
-  ### background
+   ### background
   ft <- flextable::bg(ft, i = seq(from = 1, to = nrow(sstable[-header,]), by = 2), j = 1:length(ss.header2[[1]]),
                       bg = bg, part = "body")
   ### border
