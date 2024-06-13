@@ -80,7 +80,7 @@ simple_relevel.default <- function(x, by, map, value = c('unsorted', 'sorted', '
 }
 
 #' Sort a vector in a user-defined order
-#' @description A function to sort a vector i an user-defined order
+#' @description A function to sort a vector in an user-defined order
 #' @param x A vector to be sorted
 #' @param order A manually defined order vector
 #' @return A vector

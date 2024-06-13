@@ -15,5 +15,5 @@ simple_sort(x, order = levels(as.factor(x)))
 A vector
 }
 \description{
-A function to sort a vector i an user-defined order
+A function to sort a vector in an user-defined order
 }
