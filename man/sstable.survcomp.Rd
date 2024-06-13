@@ -2,12 +2,14 @@
 % Please edit documentation in R/sstable.R
 \name{sstable.survcomp}
 \alias{sstable.survcomp}
-\title{Summarize results for a Cox survival model with the treatment arm as the main covariate}
+\title{Summarize results for a Cox survival model or restricted mean survival time with the treatment arm as the main covariate}
 \usage{
 sstable.survcomp(
   model,
   data,
   add.risk = TRUE,
+  compare.method = c("cox", "rmst"),
+  compare.args = list(),
   add.prop.haz.test = TRUE,
   medsum = TRUE,
   digits = 2,
@@ -19,33 +21,42 @@ sstable.survcomp(
 )
 }
 \arguments{
-\item{model}{a formula which can be used to fit the Cox survival model. This formula can include other covariates than arm BUT arm must be the first covariate in the model.}
+\item{model}{a formula which can be used to fit the survival model. This formula can include other covariates than arm BUT arm must be the first covariate in the model.}
 
-\item{data}{a data frame to fir the Cox survival model.}
+\item{data}{a data frame to fit the survival model.}
 
-\item{add.risk}{a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.}
+\item{add.risk}{[TRUE] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.}
 
-\item{add.prop.haz.test}{a logical value specifies whether a test for proportional hazards should be added.}
+\item{compare.method}{['cox'] a string, either "cox" for coxPH model or "rmst" for restricted mean survival time}
 
-\item{medsum}{a logical value specifies whether median (IQR) of time to event should be described.}
+\item{compare.args}{a list of additional args for compare.methods, \n
+For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
+mandatory args are `time` the truncation time, default to the minimax of the observed time across all covariate specified in the model
+`type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
+other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.}
 
-\item{digits}{a number specifies number of significant digits for numeric statistics.}
+\item{add.prop.haz.test}{[TRUE] (legacy, depricated), please move this to compare.args}
 
-\item{pdigits}{a number specifies number of significant digits for p value.}
+\item{medsum}{[TRUE] a logical value specifies whether median (IQR) of time to event should be described.}
 
-\item{pcutoff}{a number specifies threshold value of p value to be displayed as "< pcutoff".}
+\item{digits}{[2] a number specifies number of significant digits for numeric statistics.}
 
-\item{footer}{a vector of strings to be used as footnote of table.}
+\item{pdigits}{[3] a number specifies number of significant digits for p value.}
 
-\item{flextable}{a logical value specifies whether output will be a flextable-type table.}
+\item{pcutoff}{[0.001] a number specifies threshold value of p value to be displayed as "< pcutoff".}
 
-\item{bg}{a character specifies color of the odd rows in the body of flextable-type table.}
+\item{footer}{a [NULL] vector of strings to be used as footnote of table.}
+
+\item{flextable}{[TRUE] a logical value specifies whether output will be a flextable-type table.}
+
+\item{bg}{[#F2EFEE] a character specifies color of the odd rows in the body of flextable-type table.}
 }
 \value{
 a flextable-type table or a list with values/headers/footers
 }
 \description{
-A function to summarize results for a Cox survival model with the treatment arm (variable "arm") as the main covariate
+A function to summarize results for a survival model with the treatment arm (variable "arm") as the main covariate
 }
 \author{
 This function was originally written by Marcel Wolbers. Lam Phung Khanh did some modification.

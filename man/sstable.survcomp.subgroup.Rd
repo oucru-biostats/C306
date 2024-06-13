@@ -2,12 +2,14 @@
 % Please edit documentation in R/sstable.R
 \name{sstable.survcomp.subgroup}
 \alias{sstable.survcomp.subgroup}
-\title{Summarize results for a Cox survival model by treatment arm and subgroup}
+\title{Summarize results for a survival model by treatment arm and subgroup}
 \usage{
 sstable.survcomp.subgroup(
   base.model,
   subgroup.model,
   data,
+  compare.method = c("cox", "rmst"),
+  compare.args = list(),
   digits = 2,
   pdigits = 3,
   pcutoff = 0.001,
@@ -23,6 +25,15 @@ sstable.survcomp.subgroup(
 \item{subgroup.model}{a formula of the form "~subgrouping.variable1+subgrouping.variable2" (!! subgrouping.variable must be factors and there should be nothing on the left-hand side of the formula).}
 
 \item{data}{a data frame to fir the Cox survival model.}
+
+\item{compare.method}{['cox'] a string, either "cox" for coxPH model or "rmst" for restricted mean survival time}
+
+\item{compare.args}{a list of additional args for compare.methods, \n
+For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
+mandatory args are `time` the truncation time, default to the minimax of the observed time across all covariate specified in the model
+`type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
+other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.}
 
 \item{digits}{a number specifies number of significant digits for numeric statistics.}
 
@@ -42,7 +53,7 @@ sstable.survcomp.subgroup(
 a flextable-type table or a list with values/headers/footers
 }
 \description{
-A function to summarize results for a Cox survival model by treatment arm (variable "arm") and subgroup.
+A function to summarize results for a survival model by treatment arm (variable "arm") and subgroup.
 }
 \author{
 This function was originally written by Marcel Wolbers. Lam Phung Khanh did some modification.
