@@ -965,12 +965,13 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 #' @param model a formula which can be used to fit the survival model. This formula can include other covariates than arm BUT arm must be the first covariate in the model.
 #' @param data a data frame to fit the survival model.
 #' @param add.risk [TRUE] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.O#
+#' @param time [Inf] the truncation time, affecting the descriptive and the RMST model, set to Inf to perform analyes at maximum time available
+#' (minimax of the observed time across two arms in RMST model)
 #' @param reference.arm [B] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
 #' @param compare.method ['cox'] a string, either "cox" for coxPH model or "rmst" for restricted mean survival time
 #' @param compare.args a list of additional args for compare.methods, \n
 #' For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
 #' For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
-#' mandatory args are `time` the truncation time, default to the minimax of the observed time across all covariate specified in the model
 #' `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
 #' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
 #' @param add.prop.haz.test [TRUE] (legacy, depricated), please move this to compare.args
@@ -988,6 +989,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 #' @export
 sstable.survcomp <- function(
     model, data, add.risk = TRUE,
+    time = Inf,
     reference.arm = c('B', 'A'),
     compare.method = c('cox', 'rmst'),
     compare.args = list(),
@@ -1035,9 +1037,10 @@ sstable.survcomp <- function(
 
   # Descriptive analysis ---------------------------
   # add number of events and risks
+  time2 <- if (time == Inf) .Machine$integer.max else time
   fit.surv0 <- survival::survfit(update(model, new = as.formula(paste0(". ~ ", arm.var))), data = data)
   # [Trinhdhk] Use integer.max instead of Inf b/c summary.survfit does not want Inf anymore. 05/24
-  fit.surv <- summary(fit.surv0, time = .Machine$integer.max, extend = TRUE)
+  fit.surv <- summary(fit.surv0, time = time, extend = TRUE)
 
   if (length(unique(data[, arm.var])) < length(arm.names)) {
     tmp <- fit.surv$table
@@ -1106,6 +1109,7 @@ sstable.survcomp <- function(
     if (length(events.n) < length(arm.names)) {
       result[3, length(arm.names) + 1] <- "-"
     } else {
+      compare.args$time <- time
       compare.args$add.prop.haz.test <- NULL
       compare.args$formula <- model
       compare.args$data <- data
@@ -1126,7 +1130,7 @@ sstable.survcomp <- function(
       # tau for rmst is capped as minamax.time
       if (is.null(compare.args$time)) compare.args$time <- minimax.time
       else if (compare.args$time > minimax.time) {
-        warning(
+        if (time != Inf) warning(
           sprintf('Specified time (tau) is later than maximum observed time between two arms (%.2f). Set too %.2f', minimax.time, minimax.time)
         )
         compare.args$time <- minimax.time
