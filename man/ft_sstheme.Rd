@@ -4,7 +4,7 @@
 \alias{ft_sstheme}
 \title{Flextable theming for sstable}
 \usage{
-ft_sstheme(ft)
+ft_sstheme(ft, bg = "#F2EFEE")
 }
 \arguments{
 \item{ft}{flextable}

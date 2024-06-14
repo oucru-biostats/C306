@@ -8,6 +8,8 @@ sstable.survcomp(
   model,
   data,
   add.risk = TRUE,
+  time = Inf,
+  reference.arm = c("B", "A"),
   compare.method = c("cox", "rmst"),
   compare.args = list(),
   add.prop.haz.test = TRUE,
@@ -25,14 +27,18 @@ sstable.survcomp(
 
 \item{data}{a data frame to fit the survival model.}
 
-\item{add.risk}{[TRUE] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.}
+\item{add.risk}{[TRUE] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.O#}
+
+\item{time}{[Inf] the truncation time, affecting the descriptive and the RMST model, set to Inf to perform analyes at maximum time available
+(minimax of the observed time across two arms in RMST model)}
+
+\item{reference.arm}{[B] reference arm, default to the second arm ("B"), change to "A" for base on the first arm}
 
 \item{compare.method}{['cox'] a string, either "cox" for coxPH model or "rmst" for restricted mean survival time}
 
 \item{compare.args}{a list of additional args for compare.methods, \n
 For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
 For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
-mandatory args are `time` the truncation time, default to the minimax of the observed time across all covariate specified in the model
 `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
 other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.}
 
