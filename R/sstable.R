@@ -1042,14 +1042,15 @@ sstable.survcomp <- function(
   # [Trinhdhk] Use integer.max instead of Inf b/c summary.survfit does not want Inf anymore. 05/24
   fit.surv <- summary(fit.surv0, time = time2, extend = TRUE)
 
-  if (length(unique(data[, arm.var])) < length(arm.names)) {
-    tmp <- fit.surv$table
-    dim(tmp) <- c(length(unique(data[, arm.var])), length(tmp))
-    colnames(tmp) <- names(fit.surv$table)
-  } else {
-    tmp <- fit.surv$table
-  }
-  events.n <- paste(tmp[, "events"], tmp[, "n.max"], sep = "/")
+  # [Trinhdhk] This is crap as always returns at inf
+  # if (length(unique(data[, arm.var])) < length(arm.names)) {
+  #   tmp <- fit.surv$table
+  #   dim(tmp) <- c(length(unique(data[, arm.var])), length(tmp))
+  #   colnames(tmp) <- names(fit.surv$table)
+  # } else {
+  #   tmp <- fit.surv$table
+  # }
+  events.n <- paste(fit.surv$n.event, fit.surv$n, sep = "/")
   if (add.risk) events.n <- paste(events.n, " (", formatC(100*(1 - fit.surv$surv), digits, format = "f"), ")", sep="")
   idx <- which(arm.names %in% unique(data[, arm.var]))
   result[3, 1:length(arm.names)] <- rep("-", length(arm.names))
