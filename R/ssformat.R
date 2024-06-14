@@ -279,7 +279,7 @@ ft_sstheme <- function(ft){
   ### faces of header
   ft <- flextable::bold(ft, part = "header")
    ### background
-  ft <- flextable::bg(ft, i = seq(from = 1, to = nrow(sstable[-header,]), by = 2), j = 1:length(ss.header2[[1]]),
+  ft <- flextable::bg(ft, i = seq(from = 1, to = nrow(ft$body$dataset), by = 2), j = 1:ncol(ft$body$dataset)),
                       bg = bg, part = "body")
   ### border
   tabbd <- officer::fp_border(color="black", width = 1.5)
