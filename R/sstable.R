@@ -849,7 +849,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
                       else
                         lapply(paste0('~desc(', sort.var,if (sort.var != 'p') paste0('.', c('all',seq_along(arm_lev))), ')'), env = parent.frame(), as.formula)
                     })
-      ))
+      ), env=NULL)
 
 
     ae_value.sorted <- do.call(rbind,
@@ -962,29 +962,45 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 #'
 #' @description A function to summarize results for a Cox survival model with the treatment arm (variable "arm") as the main covariate
 #'
-#' @param model a formula which can be used to fit the Cox survival model. This formula can include other covariates than arm BUT arm must be the first covariate in the model.
-#' @param data a data frame to fir the Cox survival model.
-#' @param add.risk a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.
-#' @param add.prop.haz.test a logical value specifies whether a test for proportional hazards should be added.
-#' @param medsum a logical value specifies whether median (IQR) of time to event should be described.
-#' @param digits a number specifies number of significant digits for numeric statistics.
-#' @param pdigits a number specifies number of significant digits for p value.
-#' @param pcutoff a number specifies threshold value of p value to be displayed as "< pcutoff".
-#' @param footer a vector of strings to be used as footnote of table.
-#' @param flextable a logical value specifies whether output will be a flextable-type table.
-#' @param bg a character specifies color of the odd rows in the body of flextable-type table.
-#'
+#' @param model a formula which can be used to fit the survival model. This formula can include other covariates than arm BUT arm must be the first covariate in the model.
+#' @param data a data frame to fit the survival model.
+#' @param add.risk [TRUE] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.O#
+#' @param reference.arm [B] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
+#' @param compare.method ['cox'] a string, either "cox" for coxPH model or "rmst" for restricted mean survival time
+#' @param compare.args a list of additional args for compare.methods, \n
+#' For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+#' For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
+#' mandatory args are `time` the truncation time, default to the minimax of the observed time across all covariate specified in the model
+#' `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
+#' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
+#' @param add.prop.haz.test [TRUE] (legacy, depricated), please move this to compare.args
+#' @param medsum [TRUE] a logical value specifies whether median (IQR) of time to event should be described.
+#' @param digits [2] a number specifies number of significant digits for numeric statistics.
+#' @param pdigits [3] a number specifies number of significant digits for p value.
+#' @param pcutoff [0.001] a number specifies threshold value of p value to be displayed as "< pcutoff".
+#' @param footer a [NULL] vector of strings to be used as footnote of table.
+#' @param flextable [TRUE] a logical value specifies whether output will be a flextable-type table.
+#' @param bg [#F2EFEE] a character specifies color of the odd rows in the body of flextable-type table.
 #' @return a flextable-type table or a list with values/headers/footers
 #'
 #' @author This function was originally written by Marcel Wolbers. Lam Phung Khanh did some modification.
 #' @import survival
 #' @export
-sstable.survcomp <- function(model, data, add.risk = TRUE, add.prop.haz.test = TRUE, medsum = TRUE,
-                             digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE"){
+
+sstable.survcomp <- function(
+    model, data, add.risk = TRUE,
+    reference.arm = c('B', 'A'),
+    compare.method = c('cox', 'rmst'),
+    compare.args = list(),
+    add.prop.haz.test = TRUE, medsum = TRUE,
+    digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE"){
   requireNamespace("survival")
 
   ## strip the tibble class which causes issue - trinhdhk
   data <- as.data.frame(data)
+  compare.method <- match.arg(compare.method)
+  reference.arm <- match.arg(reference.arm)
+
 
   arm.var <- if (length(model[[3]]) > 1) {deparse(model[[3]][[2]])} else {deparse(model[[3]])}
   arm.names <- levels(data[, arm.var])
@@ -1014,8 +1030,12 @@ sstable.survcomp <- function(model, data, add.risk = TRUE, add.prop.haz.test = T
   idx <- which(arm.names %in% unique(data[, arm.var]))
   result[3, 1:length(arm.names)] <- rep("-", length(arm.names))
   result[3, idx] <- events.n
-  #browser()
-  if (length(events.n) < length(arm.names)) {
+  # Comparison --------------------------------------
+  # Re-base the arm factor
+  if (reference.arm == 'B') levels(data[, arm.var]) <- rev(arm.names)
+  if (compare.method == "cox"){
+    if (!is.null(compare.args$add.prop.haz.test)) add.prop.haz.test <- compare.args$add.prop.haz.test
+    if (length(events.n) < length(arm.names)) {
     result[3, length(arm.names) + 1] <- "-"
     if (add.prop.haz.test){result <- cbind(result, c("Test for proportional hazards", "p-value", "-"))}
   } else {
