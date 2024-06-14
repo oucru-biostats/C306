@@ -275,7 +275,7 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
 #' @description Theming flextable for sstable
 #' @param ft flextable
 #' @export 
-ft_sstheme <- function(ft, bg){
+ft_sstheme <- function(ft, bg = "#F2EFEE"){
   ### faces of header
   ft <- flextable::bold(ft, part = "header")
    ### background
