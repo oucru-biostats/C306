@@ -1040,7 +1040,7 @@ sstable.survcomp <- function(
   time2 <- if (time == Inf) .Machine$integer.max else time
   fit.surv0 <- survival::survfit(update(model, new = as.formula(paste0(". ~ ", arm.var))), data = data)
   # [Trinhdhk] Use integer.max instead of Inf b/c summary.survfit does not want Inf anymore. 05/24
-  fit.surv <- summary(fit.surv0, time = time, extend = TRUE)
+  fit.surv <- summary(fit.surv0, time = time2, extend = TRUE)
 
   if (length(unique(data[, arm.var])) < length(arm.names)) {
     tmp <- fit.surv$table
