@@ -266,7 +266,7 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
   ### alignment
   ft <- flextable::align(ft, j = 1, align = "left", part = "all")
   
-  ft_sstheme(ft)
+  ft_sstheme(ft, bg = "#F2EFEE" )
 }
 
 
@@ -275,7 +275,7 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
 #' @description Theming flextable for sstable
 #' @param ft flextable
 #' @export 
-ft_sstheme <- function(ft){
+ft_sstheme <- function(ft, bg){
   ### faces of header
   ft <- flextable::bold(ft, part = "header")
    ### background
