@@ -1256,11 +1256,12 @@ sstable.survcomp <- function(
 #' @param base.model a formula from which sub-group specific estimates are extracted (!! arm must be the first covariate in the model).
 #' @param subgroup.model a formula of the form "~subgrouping.variable1+subgrouping.variable2" (!! subgrouping.variable must be factors and there should be nothing on the left-hand side of the formula).
 #' @param data a data frame to fir the Cox survival model.
+#' @param time [Inf] the truncation time, affecting the descriptive and the RMST model, set to Inf to perform analyes at maximum time available
+#' (minimax of the observed time across two arms in RMST model)
 #' @param compare.method ['cox'] a string, either "cox" for coxPH model or "rmst" for restricted mean survival time
 #' @param compare.args a list of additional args for compare.methods, \n
 #' For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
 #' For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
-#' mandatory args are `time` the truncation time, default to the minimax of the observed time across all covariate specified in the model
 #' `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
 #' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
 #'
@@ -1356,7 +1357,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
       result <- rbind(result, "")
       result[nrow(result), 1] <- paste("-", factor.levels[j])
       d.subgroup <- subset(data, .subgroup.var == factor.levels[j])
-      result[nrow(result), 2:(ncol(result) - 1)] <- sstable.survcomp(model = base.model, data = d.subgroup,
+      result[nrow(result), 2:(ncol(result) - 1)] <- sstable.survcomp(model = base.model, data = d.subgroup, time=time,
                                                                      compare.method = compare.method, compare.args = compare.args,
                                                                      medsum = FALSE, digits = digits, pdigits = pdigits, pcutoff = pcutoff,
                                                                      flextable = FALSE, ...)$table[3,-1]

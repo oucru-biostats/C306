@@ -31,7 +31,6 @@ sstable.survcomp.subgroup(
 \item{compare.args}{a list of additional args for compare.methods, \n
 For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
 For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
-mandatory args are `time` the truncation time, default to the minimax of the observed time across all covariate specified in the model
 `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
 other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.}
 
@@ -48,6 +47,9 @@ other optional args include: model.censoring, formula.censoring, ipcw.method. Se
 \item{bg}{a character specifies color of the odd rows in the body of flextable-type table.}
 
 \item{...}{arguments that are passed to sstable.survcomp.}
+
+\item{time}{[Inf] the truncation time, affecting the descriptive and the RMST model, set to Inf to perform analyes at maximum time available
+(minimax of the observed time across two arms in RMST model)}
 }
 \value{
 a flextable-type table or a list with values/headers/footers
