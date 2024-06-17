@@ -1072,8 +1072,8 @@ sstable.survcomp <- function(
       compare.args$formula <- model
       compare.args$data <- data
       # add HR, CI, p-value
-      coxph <- survival::coxph
-      fit.coxph <- do.call(coxph, compare.args) #survival::coxph(model, data)
+      # coxph <- survival::coxph
+      fit.coxph <- do.call(survival::coxph, compare.args) #survival::coxph(model, data)
       est <- coef(fit.coxph)[1:(length(arm.names)-1)] #trinhdhk: if there were more covariables than just arm, subsetting this to only get the arm
       hr <- formatC(exp(est), digits, format = "f")
 
@@ -1107,7 +1107,7 @@ sstable.survcomp <- function(
       }
     }
   } else {
-    requireNamespace('eventglm')
+    # requireNamespace('eventglm')
     if (length(events.n) < length(arm.names)) {
       result[3, length(arm.names) + 1] <- "-"
     } else {
@@ -1115,7 +1115,7 @@ sstable.survcomp <- function(
       compare.args$add.prop.haz.test <- NULL
       compare.args$formula <- model
       compare.args$data <- data
-      if (is.null(compare.args$type)) type <- 'diff'
+      type <- if (is.null(compare.args$type)) 'diff' else compare.args$type
       compare.args$type <- NULL
       compare.args$link <- switch(type, "diff" = 'identity', "ratio" = 'log', 'lost.ratio' = 'log')
       if (is.null(compare.args$model.censoring)) compare.args$model.censoring <- 'stratified'
@@ -1151,8 +1151,8 @@ sstable.survcomp <- function(
       }
 
       # Perform rmeanglm
-      rmeanglm <- eventglm::rmeanglm
-      fit.rmst <- do.call(rmeanglm, compare.args)
+    # rmeanglm <- eventglm::rmeanglm
+      fit.rmst <- do.call(eventglm::rmeanglm, compare.args)
       est <- coef(fit.rmst)[2:(length(arm.names))] # get the coef for arm
       invlink <- fit.rmst$family$linkinv
       diff <- formatC(invlink(est), digits, format = "f")
@@ -1301,7 +1301,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
 
   # result in entire population
-  result <- sstable.survcomp(model = base.model, data = data, time=time, medsum = FALSE, digits = digits,
+result <- sstable.survcomp(model = base.model, data = data, time=time, medsum = FALSE, digits = digits,
                              compare.method = compare.method, compare.args = compare.args,
                              pdigits = 3, pcutoff = pcutoff, flextable = FALSE, ...)$table[,-1]
   result <- cbind(c("Subgroup", "", "All patients"), result, c("Test for heterogeneity", "p-value", ""))
@@ -1323,7 +1323,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
       if (compare.method == 'cox')
         anova(survival::coxph(ia.model, data = data), survival::coxph(main.model, data = data), test = "Chisq")[2, "Pr(>|Chi|)"]
       else{
-        fitter <- eventglm::rmeanglm
+        # fitter <- eventglm::rmeanglm
         ia.args <- compare.args
         ia.args$add.prop.haz.test <- NULL
         # ia.args$formula <- ia.model
@@ -1347,8 +1347,8 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
         }
         # browser()
         anova(
-          do.call(fitter, append(ia.args, c(formula=ia.model))),
-          do.call(fitter, append(ia.args, c(formula=main.model))),
+          do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
+          do.call(eventglm::rmeanglm, append(ia.args, c(formula=main.model))),
          test = "Chisq"
         )[2, "Pr(>Chi)"]
       }
