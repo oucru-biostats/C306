@@ -1280,6 +1280,7 @@ sstable.survcomp <- function(
 #' @import survival
 #' @export
 sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
+  time = Inf,
   compare.method = c('cox', 'rmst'),
   compare.args = list(),
   digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE", ...){
@@ -1300,7 +1301,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
 
   # result in entire population
-  result <- sstable.survcomp(model = base.model, data = data, medsum = FALSE, digits = digits,
+  result <- sstable.survcomp(model = base.model, data = data, time=time, medsum = FALSE, digits = digits,
                              compare.method = compare.method, compare.args = compare.args,
                              pdigits = 3, pcutoff = pcutoff, flextable = FALSE, ...)$table[,-1]
   result <- cbind(c("Subgroup", "", "All patients"), result, c("Test for heterogeneity", "p-value", ""))
