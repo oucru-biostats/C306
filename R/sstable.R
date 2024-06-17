@@ -1296,7 +1296,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   # } else {
   #     deparse(base.model[[3]])
   #   }
-  arm.vars <- formula.tools::rhs.vars(base.model)[[1]]
+  arm.var <- formula.tools::rhs.vars(base.model)[[1]]
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
 
   # result in entire population
