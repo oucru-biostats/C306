@@ -1003,7 +1003,8 @@ sstable.survcomp <- function(
   compare.method <- match.arg(compare.method)
   reference.arm <- match.arg(reference.arm)
 
-  arm.var <- if (length(model[[3]]) > 1) {deparse(model[[3]][[2]])} else {deparse(model[[3]])}
+  # arm.var <- if (length(model[[3]]) > 1) {deparse(model[[3]][[2]])} else {deparse(model[[3]])}
+  arm.var <- formula.tools::rhs.vars(model)[[1]]
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
   arm.names <- levels(data[, arm.var])
   if (length(arm.names) > 2) stop('At the moment, only two-arm studies are supported. A lot of code has coveraged for more than 2 arms but please think about what should be compared in those cases (chunk test or pairwise test for instance) before implementing / trinhdhk.')
@@ -1290,11 +1291,12 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   data <- as.data.frame(data)
   compare.method <- match.arg(compare.method)
 
-  arm.var <- if (length(base.model[[3]]) > 1) {
-    deparse(base.model[[3]][[2]])
-  } else {
-      deparse(base.model[[3]])
-    }
+  # arm.var <- if (length(base.model[[3]]) > 1) {
+  #   deparse(base.model[[3]][[2]])
+  # } else {
+  #     deparse(base.model[[3]])
+  #   }
+  arm.vars <- formula.tools::rhs.vars(base.model)[[1]]
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
 
   # result in entire population
