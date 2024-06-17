@@ -117,7 +117,7 @@ ss_format <- function(sstable, header = c(), section = c(), body = c(), template
   if (length(header)) sstable <- ss_header(sstable, rows = header)
   if (length(body)) sstable <- ss_body(sstable, rows = body)
   if (length(section)) sstable <- ss_section(sstable, rows = section)
-  if (sum(sapply(c('header', 'section', 'body'), grepl, x=rownames(sstable), fixed=TRUE)) != nrow(sstable)) 
+  if (sum(sapply(c('header', 'section', 'body'), grepl, x=rownames(sstable), fixed=TRUE)) != nrow(sstable))
     stop('Some row are not classified as header, section, or body. Perhaps you want to set .guess to TRUE?')
   class(sstable) <- c('formatted_sstable', class(sstable))
   sstable
@@ -265,16 +265,16 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
   ft <- flextable::autofit(ft)
   ### alignment
   ft <- flextable::align(ft, j = 1, align = "left", part = "all")
-  
+
   ft_sstheme(ft, bg = "#F2EFEE" )
 }
 
 
 #' Flextable theming for sstable
-#' 
+#'
 #' @description Theming flextable for sstable
 #' @param ft flextable
-#' @export 
+#' @export
 ft_sstheme <- function(ft, bg = "#F2EFEE"){
   ### faces of header
   ft <- flextable::bold(ft, part = "header")
@@ -550,7 +550,7 @@ as_sstable.default <- function(x, flextable = FALSE, ...){
   colnames(out$table) <- rownames(out$table) <- NULL
   if (length(attr(x, 'footer'))) out$footer <- attr(x, 'footer')
 
-  class(out) <- c('ss_tbl', 'matrix')
+  class(out$table) <- c('ss_tbl', 'matrix')
   if (flextable) return(ss_flextable(out, ...))
   return(out)
 }
@@ -560,13 +560,15 @@ as_sstable.default <- function(x, flextable = FALSE, ...){
 as_sstable.list <- function(x, flextable = FALSE, ...){
   out <- list()
 
+  if (is.null(x$header))
+    return(as_sstable.default(x, flextable = flextable, ...))
   header <- if (inherits(x$header, 'matrix')) x$header else do.call(rbind, x$header)
   rownames(header) = paste0('header', seq_len(nrow(header)))
 
   if (inherits(x$body, 'list')){
     body <- lapply(seq_along(x$body), function(i){
       cont <- x$body[[i]]
-      title <- names(x$body)[[i]] 
+      title <- names(x$body)[[i]]
       if (is.null(title)) title <- ''
       title <- rep(title, ncol(cont))
       sec <- rbind(title, cont)
@@ -579,7 +581,7 @@ as_sstable.list <- function(x, flextable = FALSE, ...){
       body <- as.matrix(x$body)
       rownames(body) <- paste0('body', seq_len(nrow(body)))
   }
- 
+
   out$table <- rbind(header, body)
   out$footer <- x$footer
   class(out$table) <- c('ss_tbl', 'matrix')
@@ -609,7 +611,7 @@ as_sstable.logist_summary <- function(x, include_footnote = TRUE, flextable = FA
 }
 
 #' @rdname as_sstable
-#' @param include_footnote logical value specifying whether to include footnote in the output. Default is FALSE
+#' @param include_footsnote logical value specifying whether to include footnote in the output. Default is FALSE
 #' @export
 as_sstable.overlap_summary <- function(x, include_footnote = TRUE, flextable = FALSE, ...){
   out <- list()

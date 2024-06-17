@@ -1469,6 +1469,11 @@ result <- sstable.survcomp(model = base.model, data = data, time=time, reference
 
 #' @export
 print.ss_tbl <- function(sstable){
-  class(sstable) <- 'matrix'
-  print(sstable)
+  tryCatch(
+    {
+      print(huxtable::as_hux(sstable) |> huxtable::theme_article())
+    },
+    error = function(e) {print.default(sstable)}
+    )
+  invisible(sstable)
 }
