@@ -10,7 +10,7 @@ sstable.survcomp(
   add.risk = TRUE,
   time = Inf,
   reference.arm = c("B", "A"),
-  compare.method = c("cox", "rmst"),
+  compare.method = c("cox", "rmst", "cuminc"),
   compare.args = list(),
   add.prop.haz.test = TRUE,
   medsum = TRUE,
@@ -34,10 +34,13 @@ sstable.survcomp(
 
 \item{reference.arm}{[B] reference arm, default to the second arm ("B"), change to "A" for base on the first arm}
 
-\item{compare.method}{['cox'] a string, either "cox" for coxPH model or "rmst" for restricted mean survival time}
+\item{compare.method}{['cox'] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time}
 
 \item{compare.args}{a list of additional args for compare.methods, \n
 For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+For compare.method = 'cuminc', args are fed to \code{\link[eventglm::cumincglm]{eventglm::cumincglm}}
+`type`: [diff] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
+other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
 For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
 `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
 other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.}

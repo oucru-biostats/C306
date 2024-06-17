@@ -968,9 +968,12 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 #' @param time [Inf] the truncation time, affecting the descriptive and the RMST model, set to Inf to perform analyes at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
 #' @param reference.arm [B] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
-#' @param compare.method ['cox'] a string, either "cox" for coxPH model or "rmst" for restricted mean survival time
+#' @param compare.method ['cox'] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time
 #' @param compare.args a list of additional args for compare.methods, \n
 #' For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+#' For compare.method = 'cuminc', args are fed to \code{\link[eventglm::cumincglm]{eventglm::cumincglm}}
+#' `type`: [diff] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
+#' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
 #' For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
 #' `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
 #' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
@@ -991,7 +994,7 @@ sstable.survcomp <- function(
     model, data, add.risk = TRUE,
     time = Inf,
     reference.arm = c('B', 'A'),
-    compare.method = c('cox', 'rmst'),
+    compare.method = c('cox', 'rmst', 'cuminc'),
     compare.args = list(),
     add.prop.haz.test = TRUE, medsum = TRUE,
     digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE"){
@@ -1013,6 +1016,9 @@ sstable.survcomp <- function(
   header1 <- c(paste(arm.names, " (n=", table(data[, arm.var]), ")", sep = ""), "Comparison")
   compare.stat <- switch(compare.method,
     cox = 'HR',
+    cuminc = if (is.null(compare.args$type)) 'Cumul.inc difference'
+    else switch(compare.args$type,
+                diff = 'Cumulative incidence difference', ratio = 'Cumulative incidence ratio'),
     rmst = if (is.null(compare.args$type)) 'RMST difference'
            else switch(compare.args$type,
                       diff = 'RMST difference', ratio = 'RMST ratio', lost.ratio = 'RMTL ratio'))
@@ -1025,14 +1031,19 @@ sstable.survcomp <- function(
   compare.note <- switch(
     compare.stat,
     'HR' = 'HR = hazard ratio',
+    'Cumul.inc difference' = 'Cumul.inc : Cumulative incidence',
+    'Cumul.inc ratio' = 'Cumul.inc : Cumulative incidence',
     'RMST difference' = 'RMST: Restricted mean survival time',
     'RMST ratio' = 'RMST: Restricted mean survival time',
     'RMTL ratio' = 'RMTL: Restricted mean time lost'
   )
-  compare.name <- switch(compare.method, cox='Cox proportional hazards', rmst='Restricted mean survival time')
+  compare.name <- switch(compare.method,
+                         cuminc='Generalized linear models for cumulative incidence',
+                         cox='Cox proportional hazards model',
+                         rmst='Restricted mean survival time model')
   footer <- c(
     paste0(compare.note, "; IQR = interquartile range."),
-    paste(compare.stat, "and p value were based on", compare.name, "survival models."),
+    paste(compare.stat, "and p value were based on", compare.name, '.'),
     footer)
 
 
@@ -1140,6 +1151,7 @@ sstable.survcomp <- function(
       # If type == lost.ratio then reverse the time
       # ie. Surv(tau - ev_time, ev) ~ .
       if (type == 'lost.ratio') {
+        if (compare.method == 'cuminc') stop('type lost.ratio is meaningless in cuminc comparison.')
         model.lhs <- formula.tools::lhs(model)
         for (i in 2:(length(model.lhs)-1)) {
           old <- model.lhs[[i]];
@@ -1152,7 +1164,8 @@ sstable.survcomp <- function(
 
       # Perform rmeanglm
     # rmeanglm <- eventglm::rmeanglm
-      fit.rmst <- do.call(eventglm::rmeanglm, compare.args)
+      fitter <- if (compare.method == 'rmst') eventglm::rmeanglm else eventglm::cumincglm
+      fit.rmst <- do.call(fitter, compare.args)
       est <- coef(fit.rmst)[2:(length(arm.names))] # get the coef for arm
       invlink <- fit.rmst$family$linkinv
       diff <- formatC(invlink(est), digits, format = "f")
@@ -1259,9 +1272,13 @@ sstable.survcomp <- function(
 #' @param data a data frame to fir the Cox survival model.
 #' @param time [Inf] the truncation time, affecting the descriptive and the RMST model, set to Inf to perform analyes at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
-#' @param compare.method ['cox'] a string, either "cox" for coxPH model or "rmst" for restricted mean survival time
+#' @param reference.arm [B] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
+#' @param compare.method ['cox'] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time
 #' @param compare.args a list of additional args for compare.methods, \n
 #' For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+#' For compare.method = 'cuminc', args are fed to \code{\link[eventglm::cumincglm]{eventglm::cumincglm}}
+#' `type`: [diff] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
+#' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
 #' For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
 #' `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
 #' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
@@ -1281,7 +1298,8 @@ sstable.survcomp <- function(
 #' @export
 sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   time = Inf,
-  compare.method = c('cox', 'rmst'),
+  reference.arm = c('B', 'A'),
+  compare.method = c('cox', 'rmst', 'cuminc'),
   compare.args = list(),
   digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE", ...){
 
@@ -1301,7 +1319,8 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
 
   # result in entire population
-result <- sstable.survcomp(model = base.model, data = data, time=time, medsum = FALSE, digits = digits,
+result <- sstable.survcomp(model = base.model, data = data, time=time, reference.arm=reference.arm,
+                           medsum = FALSE, digits = digits,
                              compare.method = compare.method, compare.args = compare.args,
                              pdigits = 3, pcutoff = pcutoff, flextable = FALSE, ...)$table[,-1]
   result <- cbind(c("Subgroup", "", "All patients"), result, c("Test for heterogeneity", "p-value", ""))
@@ -1368,22 +1387,29 @@ result <- sstable.survcomp(model = base.model, data = data, time=time, medsum = 
   }
   ## footer
   compare.stat <- switch(compare.method,
-    cox = 'HR',
-    rmst = if (is.null(compare.args$type)) 'RMST difference'
-           else switch(compare.args$type,
-                      diff = 'RMST different', ratio = 'RMST ratio', lost.ratio = 'RMTL ratio'))
-
-  compare.name <- switch(compare.method, cox='Cox proportional hazards', rmst='Restricted mean survival time')
+                         cox = 'HR',
+                         cuminc = if (is.null(compare.args$type)) 'Cumul.inc difference'
+                         else switch(compare.args$type,
+                                     diff = 'Cumulative incidence difference', ratio = 'Cumulative incidence ratio'),
+                         rmst = if (is.null(compare.args$type)) 'RMST difference'
+                         else switch(compare.args$type,
+                                     diff = 'RMST difference', ratio = 'RMST ratio', lost.ratio = 'RMTL ratio'))
   compare.note <- switch(
     compare.stat,
     'HR' = 'HR = hazard ratio',
+    'Cumul.inc difference' = 'Cumul.inc : Cumulative incidence',
+    'Cumul.inc ratio' = 'Cumul.inc : Cumulative incidence',
     'RMST difference' = 'RMST: Restricted mean survival time',
     'RMST ratio' = 'RMST: Restricted mean survival time',
-    'RMTL ratio' = 'RMST: Restricted mean time lost'
+    'RMTL ratio' = 'RMTL: Restricted mean time lost'
   )
+  compare.name <- switch(compare.method,
+                         cuminc='Generalized linear models for cumulative incidence',
+                         cox='Cox proportional hazards model',
+                         rmst='Restricted mean survival time model')
   footer <- c(
     compare.note,
-    paste(compare.stat, "and p value were based on", compare.name,"models."),
+    paste(compare.stat, "and p value were based on", compare.name, '.'),
     "Test for heterogeneity is an interaction test between treatment effect and each subgroup in the survival model not including other variables.",
     footer)
 
