@@ -1115,11 +1115,11 @@ sstable.survcomp <- function(
       compare.args$add.prop.haz.test <- NULL
       compare.args$formula <- model
       compare.args$data <- data
-      type <- if (is.null(compare.args$type)) 'diff' else compare.args$type
+      if (is.null(compare.args$type)) type <- 'diff'
       compare.args$type <- NULL
       compare.args$link <- switch(type, "diff" = 'identity', "ratio" = 'log', 'lost.ratio' = 'log')
-      compare.args$model.censoring <- if (is.null(compare.args$model.censoring)) 'stratified'
-      compare.args$formula.censoring <- if (is.null(compare.args$formula.censoring)) as.formula(paste0("~`", arm.var, '`'))
+      if (is.null(compare.args$model.censoring)) compare.args$model.censoring <- 'stratified'
+      if (is.null(compare.args$formula.censoring)) compare.args$formula.censoring <- as.formula(paste0("~`", arm.var, '`'))
       # Extract the time from Surv object with the arm included
       mf <- model.frame(update(model, new = as.formula(paste0(". ~`", arm.var, '`'))), data = data)
       mf <- cbind(unclass(mf[,1]), mf[,2])
