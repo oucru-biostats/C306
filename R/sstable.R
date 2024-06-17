@@ -1018,7 +1018,7 @@ sstable.survcomp <- function(
     cox = 'HR',
     cuminc = if (is.null(compare.args$type)) 'Cumul.inc difference'
     else switch(compare.args$type,
-                diff = 'Cumulative incidence difference', ratio = 'Cumulative incidence ratio'),
+                diff = 'Cumul.inc difference', ratio = 'Cumul.inc ratio'),
     rmst = if (is.null(compare.args$type)) 'RMST difference'
            else switch(compare.args$type,
                       diff = 'RMST difference', ratio = 'RMST ratio', lost.ratio = 'RMTL ratio'))
@@ -1390,7 +1390,7 @@ result <- sstable.survcomp(model = base.model, data = data, time=time, reference
                          cox = 'HR',
                          cuminc = if (is.null(compare.args$type)) 'Cumul.inc difference'
                          else switch(compare.args$type,
-                                     diff = 'Cumulative incidence difference', ratio = 'Cumulative incidence ratio'),
+                                     diff = 'Cumul.inc difference', ratio = 'Cumul.inc ratio'),
                          rmst = if (is.null(compare.args$type)) 'RMST difference'
                          else switch(compare.args$type,
                                      diff = 'RMST difference', ratio = 'RMST ratio', lost.ratio = 'RMTL ratio'))
