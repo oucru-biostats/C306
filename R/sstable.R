@@ -1202,7 +1202,7 @@ sstable.survcomp <- function(
           pval <- format.pval(p, eps = pcutoff, digits = pdigits)
           cf <- confint(fit.rmst)[2:length(arm.names),, drop=FALSE]
           ci <- apply(cf, 1,
-            \(.cf) paste(formatC(invlink(.cf), digits, format = "f"), collapse = ", ")
+            \(.cf) paste(formatC(sort(invlink(.cf)), digits, format = "f"), collapse = ", ")
           )
           diff.ci.p <- paste(diff, " (", ci, "); p=", pval, sep = "")
           diff.ci.p
