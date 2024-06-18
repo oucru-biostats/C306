@@ -26,37 +26,42 @@ sstable.survcomp.subgroup(
 
 \item{subgroup.model}{a formula of the form "~subgrouping.variable1+subgrouping.variable2" (!! subgrouping.variable must be factors and there should be nothing on the left-hand side of the formula).}
 
-\item{data}{a data frame to fir the Cox survival model.}
+\item{data}{a data frame to fit the survival model.}
 
-\item{time}{[Inf] the truncation time, affecting the descriptive and the RMST model, set to Inf to perform analyes at maximum time available
+\item{time}{[\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 (minimax of the observed time across two arms in RMST model)}
 
-\item{reference.arm}{[B] reference arm, default to the second arm ("B"), change to "A" for base on the first arm}
+\item{reference.arm}{[\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm}
 
-\item{compare.method}{['cox'] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time}
+\item{compare.method}{[\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time}
 
-\item{compare.args}{a list of additional args for compare.methods, \n
-For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
-For compare.method = 'cuminc', args are fed to \code{\link[eventglm::cumincglm]{eventglm::cumincglm}}
-`type`: [diff] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
-other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
-For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
-`type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
-other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.}
+\item{digits}{[\code{2}] a number specifies number of significant digits for numeric statistics.}
 
-\item{digits}{a number specifies number of significant digits for numeric statistics.}
+\item{pdigits}{[\code{3}] a number specifies number of significant digits for p value.}
 
-\item{pdigits}{a number specifies number of significant digits for p value.}
+\item{pcutoff}{[\code{0.001}] a number specifies threshold value of p value to be displayed as "< pcutoff".}
 
-\item{pcutoff}{a number specifies threshold value of p value to be displayed as "< pcutoff".}
+\item{footer}{a [\code{NULL}] vector of strings to be used as footnote of table.}
 
-\item{footer}{a vector of strings to be used as footnote of table.}
+\item{flextable}{[\code{TRUE}] a logical value specifies whether output will be a flextable-type table.}
 
-\item{flextable}{a logical value specifies whether output will be a flextable-type table.}
+\item{bg}{[\code{#F2EFEE}] a character specifies color of the odd rows in the body of flextable-type table.}
 
-\item{bg}{a character specifies color of the odd rows in the body of flextable-type table.}
+\item{...}{arguments that are passed to sstable.survcomp}
 
-\item{...}{arguments that are passed to sstable.survcomp.}
+\item{add.risk}{[\code{TRUE}] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.}
+
+\item{compare.args:}{a list of additional args for compare.methods,
+
+ For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+
+ For compare.method = 'cuminc', args are fed to \code{\link[eventglm:cumincglm]{cumincglm}}
+ `type`: [\code{diff}] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
+ other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:cumincglm]{cumincglm}} for more details.
+
+ For compare.method = 'rmst', args are fed to \code{\link[eventglm:rmeanglm]{rmeanglm}} ,
+ `type`: [\code{diff}] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.diff" for difference in restricted mean time lost (RMTL, = -diff), and "lost.ratio" for ratio of RMTL
+ other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:rmeanglm]{rmeanglm}} for more details.}
 }
 \value{
 a flextable-type table or a list with values/headers/footers

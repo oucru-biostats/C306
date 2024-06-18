@@ -29,6 +29,8 @@ as_sstable(x, ...)
 \item{flextable}{logical value specifying whether to return a flextable. Default is FALSE}
 
 \item{include_footnote}{logical value specifying whether to include footnote in the output. Default is FALSE}
+
+\item{include_footsnote}{logical value specifying whether to include footnote in the output. Default is FALSE}
 }
 \value{
 A matrix of class ss_tbl if flextable == FALSE, otherwise a flextable

@@ -169,10 +169,12 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
       stop("Column-wise variable must be categorical !!!")
     }
     if (is.factor(y)){
+      ### [trinhdhk] 2024-04: reverse level of y for better summary
+      y <- ._lv_rev_(y)
       if (!keepEmptyGroup) y <- droplevels(y)
       y <- addNA(y, ifany = TRUE)
     } else {
-      y <- factor(as.character(y), levels = sort(unique(as.character(y)), na.last = TRUE), exclude = NULL)
+      y <- factor(as.character(y), levels = sort(unique(as.character(y), decreasing = TRUE), na.last = TRUE), exclude = NULL)
     }
   } else {
     y <- factor(rep("Total", nrow(dat)))
@@ -256,7 +258,8 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
 
   ## output
   ### header
-  gr.lev <- levels(y)
+
+  gr.lev <- rev(levels(y))
   header1 <- c("", c(rbind(rep("", length(gr.lev)), paste(gr.lev, " (N=", table(y), ")", sep = ""))))
   header2 <- c("Characteristic", rep(c("n", "Summary statistic"), length(gr.lev)))
   if (test) {
@@ -622,10 +625,12 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   ## format study arms
   idarm <- fullid_data[, c(id.var, arm.var)]; colnames(idarm) <- c("id", "arm")
   if (is.factor(idarm$arm)){
+    ### [trinhdhk] 2024-04: reverse level of y for better summary
     idarm$arm <- addNA(idarm$arm, ifany = TRUE)
-    arm_lev <-levels(idarm$arm)
+    arm_lev <- rev(levels(idarm$arm))
   } else {
-    arm_lev <- sort(unique(as.character(idarm$arm)), na.last = TRUE)
+    ### [trinhdhk] 2024-04: reverse level of y for better summary
+    arm_lev <- sort(unique(as.character(idarm$arm)), decreasing = TRUE, na.last = TRUE)
     idarm$arm <- with(idarm, factor(as.character(arm), levels = arm_lev, exclude = NULL))
   }
 
@@ -964,27 +969,31 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 #'
 #' @param model a formula which can be used to fit the survival model. This formula can include other covariates than arm BUT arm must be the first covariate in the model.
 #' @param data a data frame to fit the survival model.
-#' @param add.risk [TRUE] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.O#
-#' @param time [Inf] the truncation time, affecting the descriptive and the RMST model, set to Inf to perform analyes at maximum time available
+#' @param add.risk [\code{TRUE}] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.
+#' @param time [\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
-#' @param reference.arm [B] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
-#' @param compare.method ['cox'] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time
-#' @param compare.args a list of additional args for compare.methods, \n
-#' For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
-#' For compare.method = 'cuminc', args are fed to \code{\link[eventglm::cumincglm]{eventglm::cumincglm}}
-#' `type`: [diff] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
-#' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
-#' For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
-#' `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
-#' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
-#' @param add.prop.haz.test [TRUE] (legacy, depricated), please move this to compare.args
-#' @param medsum [TRUE] a logical value specifies whether median (IQR) of time to event should be described.
-#' @param digits [2] a number specifies number of significant digits for numeric statistics.
-#' @param pdigits [3] a number specifies number of significant digits for p value.
-#' @param pcutoff [0.001] a number specifies threshold value of p value to be displayed as "< pcutoff".
-#' @param footer a [NULL] vector of strings to be used as footnote of table.
-#' @param flextable [TRUE] a logical value specifies whether output will be a flextable-type table.
-#' @param bg [#F2EFEE] a character specifies color of the odd rows in the body of flextable-type table.
+#' @param reference.arm [\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
+#' @param compare.method [\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time
+#'
+#' @param compare.args: a list of additional args for compare.methods,
+#'
+#'  For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+#'
+#'  For compare.method = 'cuminc', args are fed to \code{\link[eventglm:cumincglm]{cumincglm}}
+#'  `type`: [\code{diff}] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
+#'  other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:cumincglm]{cumincglm}} for more details.
+#'
+#'  For compare.method = 'rmst', args are fed to \code{\link[eventglm:rmeanglm]{rmeanglm}} ,
+#'  `type`: [\code{diff}] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.diff" for difference in restricted mean time lost (RMTL, = -diff), and "lost.ratio" for ratio of RMTL
+#'  other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:rmeanglm]{rmeanglm}} for more details.
+#' @param add.prop.haz.test [\code{TRUE}] (legacy, depricated), please move this to compare.args
+#' @param medsum [\code{TRUE}] a logical value specifies whether median (IQR) of time to event should be described.
+#' @param digits [\code{2}] a number specifies number of significant digits for numeric statistics.
+#' @param pdigits [\code{3}] a number specifies number of significant digits for p value.
+#' @param pcutoff [\code{0.001}] a number specifies threshold value of p value to be displayed as "< pcutoff".
+#' @param footer a [\code{NULL}] vector of strings to be used as footnote of table.
+#' @param flextable [\code{TRUE}] a logical value specifies whether output will be a flextable-type table.
+#' @param bg [\code{#F2EFEE}] a character specifies color of the odd rows in the body of flextable-type table.
 #' @return a flextable-type table or a list with values/headers/footers
 #'
 #' @author This function was originally written by Marcel Wolbers. Lam Phung Khanh did some modification.
@@ -1009,6 +1018,8 @@ sstable.survcomp <- function(
   # arm.var <- if (length(model[[3]]) > 1) {deparse(model[[3]][[2]])} else {deparse(model[[3]])}
   arm.var <- formula.tools::rhs.vars(model)[[1]]
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
+  ### [trinhdhk] 2024-04: reverse level of y for better summary
+  data[, arm.var] <- ._lv_rev_(data[, arm.var])
   arm.names <- levels(data[, arm.var])
   if (length(arm.names) > 2) stop('At the moment, only two-arm studies are supported. A lot of code has coveraged for more than 2 arms but please think about what should be compared in those cases (chunk test or pairwise test for instance) before implementing / trinhdhk.')
 
@@ -1021,7 +1032,11 @@ sstable.survcomp <- function(
                 diff = 'Cumul.inc difference', ratio = 'Cumul.inc ratio'),
     rmst = if (is.null(compare.args$type)) 'RMST difference'
            else switch(compare.args$type,
-                      diff = 'RMST difference', ratio = 'RMST ratio', lost.ratio = 'RMTL ratio'))
+                      diff = 'RMST difference',
+                      lost.diff = 'RMTL difference',
+                      ratio = 'RMST ratio',
+                      lost.ratio = 'RMTL ratio',
+                      stop('Illegal type for RMST comparison model')))
 
   header2 <- c(rep(ifelse(add.risk, "events/n (risk [%])", "events/n"), length(arm.names)), paste(compare.stat, "(95%CI); p-value"))
   header <- rbind(header1, header2)
@@ -1034,6 +1049,7 @@ sstable.survcomp <- function(
     'Cumul.inc difference' = 'Cumul.inc : Cumulative incidence',
     'Cumul.inc ratio' = 'Cumul.inc : Cumulative incidence',
     'RMST difference' = 'RMST: Restricted mean survival time',
+    'RMTL difference' = 'RMTL: Restricted mean time loss',
     'RMST ratio' = 'RMST: Restricted mean survival time',
     'RMTL ratio' = 'RMTL: Restricted mean time lost'
   )
@@ -1072,7 +1088,7 @@ sstable.survcomp <- function(
 
   # Comparison --------------------------------------
   # Re-base the arm factor
-  if (reference.arm == 'B') levels(data[, arm.var]) <- rev(arm.names)
+  if (reference.arm == 'B') data[, arm.var] <- ._lv_rev_(data[, arm.var])
   if (compare.method == "cox"){
     if (!is.null(compare.args$add.prop.haz.test)) add.prop.haz.test <- compare.args$add.prop.haz.test
     if (length(events.n) < length(arm.names)) {
@@ -1082,6 +1098,7 @@ sstable.survcomp <- function(
       compare.args$add.prop.haz.test <- NULL
       compare.args$formula <- model
       compare.args$data <- data
+      # browser()
       # add HR, CI, p-value
       # coxph <- survival::coxph
       fit.coxph <- do.call(survival::coxph, compare.args) #survival::coxph(model, data)
@@ -1168,6 +1185,7 @@ sstable.survcomp <- function(
       fit.rmst <- do.call(fitter, compare.args)
       est <- coef(fit.rmst)[2:(length(arm.names))] # get the coef for arm
       invlink <- fit.rmst$family$linkinv
+      if (type=='lost.diff') invlink <- function(x) -x # loss.diff=-diff
       diff <- formatC(invlink(est), digits, format = "f")
 
       result[3, length(arm.names) + 1] <-
@@ -1269,27 +1287,31 @@ sstable.survcomp <- function(
 #'
 #' @param base.model a formula from which sub-group specific estimates are extracted (!! arm must be the first covariate in the model).
 #' @param subgroup.model a formula of the form "~subgrouping.variable1+subgrouping.variable2" (!! subgrouping.variable must be factors and there should be nothing on the left-hand side of the formula).
-#' @param data a data frame to fir the Cox survival model.
-#' @param time [Inf] the truncation time, affecting the descriptive and the RMST model, set to Inf to perform analyes at maximum time available
+#' @param data a data frame to fit the survival model.
+#' @param add.risk [\code{TRUE}] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.
+#' @param time [\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
-#' @param reference.arm [B] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
-#' @param compare.method ['cox'] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time
-#' @param compare.args a list of additional args for compare.methods, \n
-#' For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
-#' For compare.method = 'cuminc', args are fed to \code{\link[eventglm::cumincglm]{eventglm::cumincglm}}
-#' `type`: [diff] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
-#' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
-#' For compare.method = 'rmst', args are fed to `eventglm::rmeanglm`,
-#' `type`: [diff] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.ratio" for ratio of restricted mean time lost
-#' other optional args include: model.censoring, formula.censoring, ipcw.method. See `eventglm::rmeanglm` for more details.
+#' @param reference.arm [\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
+#' @param compare.method [\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time
 #'
-#' @param ... arguments that are passed to sstable.survcomp.
-#' @param digits a number specifies number of significant digits for numeric statistics.
-#' @param pdigits a number specifies number of significant digits for p value.
-#' @param pcutoff a number specifies threshold value of p value to be displayed as "< pcutoff".
-#' @param footer a vector of strings to be used as footnote of table.
-#' @param flextable a logical value specifies whether output will be a flextable-type table.
-#' @param bg a character specifies color of the odd rows in the body of flextable-type table.
+#' @param compare.args: a list of additional args for compare.methods,
+#'
+#'  For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+#'
+#'  For compare.method = 'cuminc', args are fed to \code{\link[eventglm:cumincglm]{cumincglm}}
+#'  `type`: [\code{diff}] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
+#'  other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:cumincglm]{cumincglm}} for more details.
+#'
+#'  For compare.method = 'rmst', args are fed to \code{\link[eventglm:rmeanglm]{rmeanglm}} ,
+#'  `type`: [\code{diff}] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.diff" for difference in restricted mean time lost (RMTL, = -diff), and "lost.ratio" for ratio of RMTL
+#'  other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:rmeanglm]{rmeanglm}} for more details.
+#' @param digits [\code{2}] a number specifies number of significant digits for numeric statistics.
+#' @param pdigits [\code{3}] a number specifies number of significant digits for p value.
+#' @param pcutoff [\code{0.001}] a number specifies threshold value of p value to be displayed as "< pcutoff".
+#' @param footer a [\code{NULL}] vector of strings to be used as footnote of table.
+#' @param flextable [\code{TRUE}] a logical value specifies whether output will be a flextable-type table.
+#' @param bg [\code{#F2EFEE}] a character specifies color of the odd rows in the body of flextable-type table.
+#' @param ... arguments that are passed to sstable.survcomp
 #'
 #' @return a flextable-type table or a list with values/headers/footers
 #'
@@ -1393,13 +1415,18 @@ result <- sstable.survcomp(model = base.model, data = data, time=time, reference
                                      diff = 'Cumul.inc difference', ratio = 'Cumul.inc ratio'),
                          rmst = if (is.null(compare.args$type)) 'RMST difference'
                          else switch(compare.args$type,
-                                     diff = 'RMST difference', ratio = 'RMST ratio', lost.ratio = 'RMTL ratio'))
+                                     diff = 'RMST difference',
+                                     lost.diff = 'RMTL difference',
+                                     ratio = 'RMST ratio',
+                                     lost.ratio = 'RMTL ratio',
+                                     stop('Illegal type for RMST comparison model')))
   compare.note <- switch(
     compare.stat,
     'HR' = 'HR = hazard ratio',
     'Cumul.inc difference' = 'Cumul.inc : Cumulative incidence',
     'Cumul.inc ratio' = 'Cumul.inc : Cumulative incidence',
     'RMST difference' = 'RMST: Restricted mean survival time',
+    'RMTL difference' = 'RMTL: Restricted mean time loss',
     'RMST ratio' = 'RMST: Restricted mean survival time',
     'RMTL ratio' = 'RMTL: Restricted mean time lost'
   )

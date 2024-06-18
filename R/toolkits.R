@@ -199,3 +199,11 @@ pct <- function(x, method = c('auto', 'bin', 'cont', 'fct'), na.rm = TRUE, ...){
   # browser()
   pct(x2, method = 'auto', na.rm = FALSE)
 }
+
+# Reverse levels
+# For public use, please use forcats::fct_rev
+._lv_rev_ <- function(x){
+  new_x <- factor(x, levels=rev(levels(x)), exclude=NULL)
+  attributes(new_x) <- utils::modifyList(attributes(x), attributes(new_x))
+  new_x
+}
