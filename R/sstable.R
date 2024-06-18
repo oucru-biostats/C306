@@ -121,6 +121,10 @@ contSummary <- function(x, statistics = c("med.IQR", "med.90", "med.range", "mea
 #' @description A function to create a simple summary baseline table.
 #'
 #' @param formula a formula specifies variables for rows, variable for column and third-dimension variable.
+#'
+#' If formula is in the form of x+y ~ a, the function will summary x and y with respects to each value of a
+#'
+#' If formula is in the form of x+y ~ a|z, the function will summary z with respects to each value of {a,x} and {a, y}
 #' @param data a data frame to derive baseline table from.
 #' @param bycol a logical value specifies whether the summary will be by column or by row.
 #' @param pooledGroup a logical value specifies whether to pool all subgroups of column variable.
@@ -1029,7 +1033,9 @@ sstable.survcomp <- function(
     cox = 'HR',
     cuminc = if (is.null(compare.args$type)) 'Cumul.inc difference'
     else switch(compare.args$type,
-                diff = 'Cumul.inc difference', ratio = 'Cumul.inc ratio'),
+                diff = 'Cumul.inc difference',
+                ratio = 'Cumul.inc ratio',
+                stop('Illegal type for cumulative incidence comparison model')),
     rmst = if (is.null(compare.args$type)) 'RMST difference'
            else switch(compare.args$type,
                       diff = 'RMST difference',
@@ -1412,7 +1418,8 @@ result <- sstable.survcomp(model = base.model, data = data, time=time, reference
                          cox = 'HR',
                          cuminc = if (is.null(compare.args$type)) 'Cumul.inc difference'
                          else switch(compare.args$type,
-                                     diff = 'Cumul.inc difference', ratio = 'Cumul.inc ratio'),
+                                     diff = 'Cumul.inc difference', ratio = 'Cumul.inc ratio',
+                                     stop('Illegal type for cumulative incidence comparison model')),
                          rmst = if (is.null(compare.args$type)) 'RMST difference'
                          else switch(compare.args$type,
                                      diff = 'RMST difference',
