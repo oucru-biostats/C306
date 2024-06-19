@@ -96,7 +96,9 @@ inspect.data <- function (data, info, id, check_missing = c(TRUE, FALSE), plot =
       tmpdata <- data[, names(data)[tolower(names(data)) == tolower(info$varname[i])]]
       # tmplabel <- substr(gsub(pattern = "[\x01-\x1f\x7f-\xff:]", replacement = "",
       #                         x = info$label[i]), start = 1, stop = 30)
-      tmplabel <- substr(stringi::iconv(info$label[i], to='ASCII//TRANSLIT'), start=1, stop=30) |> gsub("?", "", x=_, fixed=TRUE)
+      tmplabel <- substr(stringi::stri_trans_general(
+        info$label[i],
+        id="Latin-ASCII"), start=1, stop=30) |> gsub("?", "", x=_, fixed=TRUE)
       if (length(na.omit(tmpdata)) == 0) {
         plot(x = 1:10, y = 1:10,
              main = paste(info$varname[i], "\n (", tmplabel, ")", " \n (", info$type[i], ")", sep = ""),
@@ -113,7 +115,9 @@ inspect.data <- function (data, info, id, check_missing = c(TRUE, FALSE), plot =
           # labs <- substr(gsub(pattern = "[\x01-\x1f\x7f-\xff:]", replacement = "",
           #                     x = names(table(tmpdata))), start = 1, stop = 10)
           labs <- substr(gsub(pattern = "?", replacement = "", fixed=TRUE,
-                              x = stringi::iconv(names(table(tmpdata)), to='ASCII//TRANSLIT')), start = 1, stop = 10)                    
+                              x = stringi::stri_trans_general(
+                                names(table(tmpdata)),
+                                id="Latin-ASCII")), start = 1, stop = 10)
           text(cex = 1, x = x, y = 0, labs, xpd = TRUE, srt = 45, adj = 1)
         }
         else {

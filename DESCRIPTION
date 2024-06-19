@@ -30,6 +30,7 @@ Depends:
     data.table,
     dplyr
 Imports:
+    stringi,
     lubridate,
     car,
     readxl,
