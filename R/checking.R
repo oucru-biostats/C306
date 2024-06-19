@@ -65,7 +65,7 @@ inspect.data <- function (data, info, id, check_missing = c(TRUE, FALSE), plot =
                     lapply(X = 1:ncol(data),
                            FUN = function(x) {
                              tmpdata <- data[, x]
-                             tmpprow <- seq_len(nrow(tmpdata))
+                             tmprow <- seq_len(nrow(data))
                              if ("condition" %in% names(info)) {
                                if (!is.na(info$condition[x])) {
                                  ## match variable name is condition
