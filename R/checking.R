@@ -70,9 +70,11 @@ inspect.data <- function (data, info, id, check_missing = c(TRUE, FALSE), plot =
                                  ## match variable name is condition
                                  tmpcondition <- find_match_correct_var_final(cond = info$condition[x], realvar = names(data))
                                  tmpdata <- eval(parse(text = paste0("subset(data,", tmpcondition, ")[, x]")))
+                                 tmprow <- with(data, which(eval(parse(text=condition))))
                                }
                              }
                              inspect.each(x = tmpdata,
+                                          id = tmprow,
                                           varname = info$varname[x],
                                           value = info$value[x],
                                           type = info$type[x],
@@ -144,25 +146,25 @@ inspect.data <- function (data, info, id, check_missing = c(TRUE, FALSE), plot =
   }
 }
 
-inspect.each <- function (x, varname, type, value = NA, check_missing = TRUE) {
+inspect.each <- function (x, id, varname, type, value = NA, check_missing = TRUE) {
   tmp <- NULL
   if (check_missing) {
     if (anyNA(x) | any(as.character(x) == "")) {
-      tmp <- rbind(tmp, data.frame(index = which(is.na(x) |
-                                                   as.character(x) == ""), error = paste("Missing value for",
+      tmp <- rbind(tmp, data.frame(index = id[is.na(x) |
+                                                   as.character(x) == ""], error = paste("Missing value for",
                                                                                          varname)))
     }
   }
   if (type == "numeric" & (!is.na(value) & value != "")) {
     range <- as.numeric(unlist(strsplit(value, split = ";")))
     if (any(x < range[1] & !is.na(x))) {
-      tmp <- rbind(tmp, data.frame(index = which(!is.na(x) &
-                                                   x < range[1]), error = paste("Out of range:",
+      tmp <- rbind(tmp, data.frame(index = id[!is.na(x) &
+                                                   x < range[1]], error = paste("Out of range:",
                                                                                 varname, "<", range[1])))
     }
     if (any(x > range[2] & !is.na(x))) {
-      tmp <- rbind(tmp, data.frame(index = which(!is.na(x) &
-                                                   x > range[2]), error = paste("Out of range:",
+      tmp <- rbind(tmp, data.frame(index = id[!is.na(x) &
+                                                   x > range[2]], error = paste("Out of range:",
                                                                                 varname, ">", range[2])))
     }
   }
@@ -172,8 +174,8 @@ inspect.each <- function (x, varname, type, value = NA, check_missing = TRUE) {
                     USE.NAMES = FALSE)
     if (any(!x %in% range & !is.na(x))) {
       xx <- x[!is.na(x) & !x %in% range]
-      tmp <- rbind(tmp, data.frame(index = which(!is.na(x) &
-                                                   !x %in% range), error = paste("Out of range:",
+      tmp <- rbind(tmp, data.frame(index = id[!is.na(x) &
+                                                   !x %in% range], error = paste("Out of range:",
                                                                                  varname, "=", xx)))
     }
   }
