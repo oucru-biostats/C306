@@ -631,7 +631,8 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   if (is.factor(idarm$arm)){
     ### [trinhdhk] 2024-04: reverse level of y for better summary
     idarm$arm <- addNA(idarm$arm, ifany = TRUE)
-    arm_lev <- rev(levels(idarm$arm))
+    idarm$arm <- ._lv_rev_(idarm$arm)
+    arm_lev <- levels(idarm$arm)
   } else {
     ### [trinhdhk] 2024-04: reverse level of y for better summary
     arm_lev <- sort(unique(as.character(idarm$arm)), decreasing = TRUE, na.last = TRUE)
