@@ -29,7 +29,11 @@ sstable.baseline(
 )
 }
 \arguments{
-\item{formula}{a formula specifies variables for rows, variable for column and third-dimension variable.}
+\item{formula}{a formula specifies variables for rows, variable for column and third-dimension variable.
+
+If formula is in the form of x+y ~ a, the function will summary x and y with respects to each value of a
+
+If formula is in the form of x+y ~ a|z, the function will summary z with respects to each value of {a,x} and {a, y}}
 
 \item{data}{a data frame to derive baseline table from.}
 
