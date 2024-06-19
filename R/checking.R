@@ -70,7 +70,7 @@ inspect.data <- function (data, info, id, check_missing = c(TRUE, FALSE), plot =
                                  ## match variable name is condition
                                  tmpcondition <- find_match_correct_var_final(cond = info$condition[x], realvar = names(data))
                                  tmpdata <- eval(parse(text = paste0("subset(data,", tmpcondition, ")[, x]")))
-                                 tmprow <- with(data, which(eval(parse(text=condition))))
+                                 tmprow <- with(data, which(eval(parse(text=tmpcondition))))
                                }
                              }
                              inspect.each(x = tmpdata,
