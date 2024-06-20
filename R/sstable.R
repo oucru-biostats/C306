@@ -992,7 +992,8 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 #'  `type`: [\code{diff}] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.diff" for difference in restricted mean time lost (RMTL, = -diff), and "lost.ratio" for ratio of RMTL
 #'  other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:rmeanglm]{rmeanglm}} for more details.
 #' @param add.prop.haz.test [\code{TRUE}] (legacy, depricated), please move this to compare.args
-#' @param medsum [\code{TRUE}] a logical value specifies whether median (IQR) of time to event should be described.
+#' @param medsum [\code{TRUE}] a logical value, specifying whether median (IQR) of time to event should be described.
+#' @param p.compare [\code{TRUE}] a logical value, specifying whether we should report p-value for the main comparison
 #' @param digits [\code{2}] a number specifies number of significant digits for numeric statistics.
 #' @param pdigits [\code{3}] a number specifies number of significant digits for p value.
 #' @param pcutoff [\code{0.001}] a number specifies threshold value of p value to be displayed as "< pcutoff".
@@ -1011,6 +1012,7 @@ sstable.survcomp <- function(
     compare.method = c('cox', 'rmst', 'cuminc'),
     compare.args = list(),
     add.prop.haz.test = TRUE, medsum = TRUE,
+    p.compare = TRUE,
     digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE"){
   requireNamespace("survival")
 
@@ -1026,7 +1028,7 @@ sstable.survcomp <- function(
   ### [trinhdhk] 2024-04: reverse level of y for better summary
   data[, arm.var] <- ._lv_rev_(data[, arm.var])
   arm.names <- levels(data[, arm.var])
-  if (length(arm.names) > 2) stop('At the moment, only two-arm studies are supported. A lot of code has coveraged for more than 2 arms but please think about what should be compared in those cases (chunk test or pairwise test for instance) before implementing / trinhdhk.')
+  if (length(arm.names) > 2) stop('At the moment, only two-arm studies are supported. A lot of code has covered more than 2 arms but please think about what should be compared in those cases (chunk test or pairwise test for instance) before implementing / trinhdhk.')
 
   # Table header
   header1 <- c(paste(arm.names, " (n=", table(data[, arm.var]), ")", sep = ""), "Comparison")
@@ -1045,7 +1047,7 @@ sstable.survcomp <- function(
                       lost.ratio = 'RMTL ratio',
                       stop('Illegal type for RMST comparison model')))
 
-  header2 <- c(rep(ifelse(add.risk, "events/n (risk [%])", "events/n"), length(arm.names)), paste(compare.stat, "(95%CI); p-value"))
+  header2 <- c(rep(ifelse(add.risk, "events/n (risk [%])", "events/n"), length(arm.names)), paste(compare.stat, if (p.compare) "(95%CI); p-value" else "(95%CI)"))
   header <- rbind(header1, header2)
   result <- rbind(header, "")
 
@@ -1066,7 +1068,7 @@ sstable.survcomp <- function(
                          rmst='Restricted mean survival time model')
   footer <- c(
     paste0(compare.note, "; IQR = interquartile range."),
-    paste(compare.stat, "and p value were based on", compare.name, '.'),
+    paste(compare.stat, if (p.compare) "and p value", "were based on", compare.name, '.'),
     footer)
 
 
@@ -1121,7 +1123,12 @@ sstable.survcomp <- function(
           ci <- sapply(est, \(.est) {
             paste(formatC(exp(c(.est - qnorm(0.975) * se, .est + qnorm(0.975) * se)), digits, format = "f"), collapse = ", ")
           })
-          hr.ci.p <- paste(hr, " (", ci, "); p=", pval, sep = "")
+          if (p.compare){
+            hr.ci.p <- paste(hr, " (", ci, "); p=", pval, sep = "")
+          } else {
+            hr.ci.p <- paste(hr, " (", ci, ")", sep = "")
+          }
+
           hr.ci.p
         })
 
@@ -1205,8 +1212,11 @@ sstable.survcomp <- function(
           ci <- apply(cf, 1,
             \(.cf) paste(formatC(sort(invlink(.cf)), digits, format = "f"), collapse = ", ")
           )
-          diff.ci.p <- paste(diff, " (", ci, "); p=", pval, sep = "")
-          diff.ci.p
+          if (p.compare){
+            diff.ci.p <- paste(diff, " (", ci, "); p=", pval, sep = "")
+          } else {
+            diff.ci.p <- paste(diff, " (", ci, ")", sep = "")
+          }
         })
     }
 
@@ -1312,6 +1322,7 @@ sstable.survcomp <- function(
 #'  For compare.method = 'rmst', args are fed to \code{\link[eventglm:rmeanglm]{rmeanglm}} ,
 #'  `type`: [\code{diff}] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.diff" for difference in restricted mean time lost (RMTL, = -diff), and "lost.ratio" for ratio of RMTL
 #'  other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:rmeanglm]{rmeanglm}} for more details.
+#' @param p.compare [\code{TRUE}] a logical value, specifying whether we should report p-value for the main comparison
 #' @param digits [\code{2}] a number specifies number of significant digits for numeric statistics.
 #' @param pdigits [\code{3}] a number specifies number of significant digits for p value.
 #' @param pcutoff [\code{0.001}] a number specifies threshold value of p value to be displayed as "< pcutoff".
@@ -1330,6 +1341,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   reference.arm = c('B', 'A'),
   compare.method = c('cox', 'rmst', 'cuminc'),
   compare.args = list(),
+  p.compare = TRUE,
   digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE", ...){
 
 
@@ -1350,8 +1362,9 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   # result in entire population
 result <- sstable.survcomp(model = base.model, data = data, time=time, reference.arm=reference.arm,
                            medsum = FALSE, digits = digits,
-                             compare.method = compare.method, compare.args = compare.args,
-                             pdigits = 3, pcutoff = pcutoff, flextable = FALSE, ...)$table[,-1]
+                           compare.method = compare.method, compare.args = compare.args,
+                           p.compare = p.compare,
+                           pdigits = 3, pcutoff = pcutoff, flextable = FALSE, ...)$table[,-1]
   result <- cbind(c("Subgroup", "", "All patients"), result, c("Test for heterogeneity", "p-value", ""))
 
   # Preparation of models and data
@@ -1410,6 +1423,7 @@ result <- sstable.survcomp(model = base.model, data = data, time=time, reference
       d.subgroup <- subset(data, .subgroup.var == factor.levels[j])
       result[nrow(result), 2:(ncol(result) - 1)] <- sstable.survcomp(model = base.model, data = d.subgroup, time=time,
                                                                      compare.method = compare.method, compare.args = compare.args,
+                                                                     p.compare = p.compare,
                                                                      medsum = FALSE, digits = digits, pdigits = pdigits, pcutoff = pcutoff,
                                                                      flextable = FALSE, ...)$table[3,-1]
     }

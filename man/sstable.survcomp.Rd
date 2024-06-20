@@ -14,6 +14,7 @@ sstable.survcomp(
   compare.args = list(),
   add.prop.haz.test = TRUE,
   medsum = TRUE,
+  p.compare = TRUE,
   digits = 2,
   pdigits = 3,
   pcutoff = 0.001,
@@ -38,7 +39,9 @@ sstable.survcomp(
 
 \item{add.prop.haz.test}{[\code{TRUE}] (legacy, depricated), please move this to compare.args}
 
-\item{medsum}{[\code{TRUE}] a logical value specifies whether median (IQR) of time to event should be described.}
+\item{medsum}{[\code{TRUE}] a logical value, specifying whether median (IQR) of time to event should be described.}
+
+\item{p.compare}{[\code{TRUE}] a logical value, specifying whether we should report p-value for the main comparison}
 
 \item{digits}{[\code{2}] a number specifies number of significant digits for numeric statistics.}
 

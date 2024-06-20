@@ -12,6 +12,7 @@ sstable.survcomp.subgroup(
   reference.arm = c("B", "A"),
   compare.method = c("cox", "rmst", "cuminc"),
   compare.args = list(),
+  p.compare = TRUE,
   digits = 2,
   pdigits = 3,
   pcutoff = 0.001,
@@ -34,6 +35,8 @@ sstable.survcomp.subgroup(
 \item{reference.arm}{[\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm}
 
 \item{compare.method}{[\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time}
+
+\item{p.compare}{[\code{TRUE}] a logical value, specifying whether we should report p-value for the main comparison}
 
 \item{digits}{[\code{2}] a number specifies number of significant digits for numeric statistics.}
 
