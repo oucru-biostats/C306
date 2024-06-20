@@ -263,7 +263,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   ## output
   ### header
 
-  gr.lev <- rev(levels(y))
+  gr.lev <- levels(y)
   header1 <- c("", c(rbind(rep("", length(gr.lev)), paste(gr.lev, " (N=", table(y), ")", sep = ""))))
   header2 <- c("Characteristic", rep(c("n", "Summary statistic"), length(gr.lev)))
   if (test) {
@@ -978,7 +978,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 #' @param time [\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
 #' @param reference.arm [\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
-#' @param compare.method [\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time
+#' @param compare.method [\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time, "none" to not doing comparison
 #'
 #' @param compare.args: a list of additional args for compare.methods,
 #'
