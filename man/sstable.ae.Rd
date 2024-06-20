@@ -40,7 +40,7 @@ sstable.ae(
 
 \item{aetype.var}{a character specifies name of adverse event type variable (exists in adverse event data).}
 
-\item{grade.var}{a character specifies name of adverse event grade variable (exists in adverse event data).}
+\item{grade.var}{NULL or character specifies name of adverse event grade variable (exists in adverse event data).}
 
 \item{group.var}{a character specifies group (exists in adverse event data if group_data = NULL or group_data otherwise).}
 

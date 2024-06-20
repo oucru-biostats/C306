@@ -34,7 +34,7 @@ sstable.survcomp(
 
 \item{reference.arm}{[\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm}
 
-\item{compare.method}{[\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time}
+\item{compare.method}{[\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time, "none" to not doing comparison}
 
 \item{add.prop.haz.test}{[\code{TRUE}] (legacy, depricated), please move this to compare.args}
 

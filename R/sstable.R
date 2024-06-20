@@ -558,7 +558,7 @@ sstable.baseline.each <- function(varname, x, y, z, bycol = TRUE, pooledGroup = 
 #' @param group_data a reference data frame contains the group name of each ae.
 #' @param id.var a character specifies name of study id variable (exists in both adverse event data and treatment arm data).
 #' @param aetype.var a character specifies name of adverse event type variable (exists in adverse event data).
-#' @param grade.var a character specifies name of adverse event grade variable (exists in adverse event data).
+#' @param grade.var NULL or character specifies name of adverse event grade variable (exists in adverse event data).
 #' @param group.var a character specifies group (exists in adverse event data if group_data = NULL or group_data otherwise).
 #' @param arm.var a character specifies name of treatment arm variable (exists in treatment arm data).
 #' @param sort.by
@@ -597,20 +597,20 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 
   ## check variable's name
   tmp <- match.call()
-  if (!id.var %in% names(ae_data)){stop(paste(tmp[[4]], "does not exist in", deparse(tmp[[2]]), "!!!"))}
-  if (!id.var %in% names(fullid_data)){stop(paste(tmp[[4]], "does not exist in", deparse(tmp[[3]]), "!!!"))}
-  if (!aetype.var %in% names(ae_data)){stop(paste(tmp[[5]], "does not exist in", deparse(tmp[[2]]), "!!!"))}
+  if (!id.var %in% names(ae_data)){stop(paste(tmp$id.var, "does not exist in", deparse(tmp$ae_data), "!!!"))}
+  if (!id.var %in% names(fullid_data)){stop(paste(tmp$id.var, "does not exist in", deparse(tmp$fullid_data), "!!!"))}
+  if (!aetype.var %in% names(ae_data)){stop(paste(tmp$aetype.var, "does not exist in", deparse(tmp$ae_data), "!!!"))}
   if (!is.null(grade.var)) {
-    if (!grade.var %in% names(ae_data)){stop(paste(tmp[[7]], "does not exist in", deparse(tmp[[2]]), "!!!"))}
+    if (!grade.var %in% names(ae_data)){stop(paste(tmp$grade.var, "does not exist in", deparse(tmp$ae_data), "!!!"))}
   }
   if (!is.null(group.var)){
     if (!is.null(group_data)){
-      if (!group.var %in% names(group_data)) stop(paste(tmp[[8]], 'does not exist in', deparse(tmp[[4]]), '!!!'))
-      if (!aetype.var %in% names(group_data)){stop(paste(tmp[[5]], "does not exist in", deparse(tmp[[4]]), "!!!"))}
+      if (!group.var %in% names(group_data)) stop(paste(tmp$group.var, 'does not exist in', deparse(tmp$group_data), '!!!'))
+      if (!aetype.var %in% names(group_data)){stop(paste(tmp$aetype.var, "does not exist in", deparse(tmp$group_data), "!!!"))}
     } else
-      if (!group.var %in% names(ae_data)) stop(paste(tmp[[8]], 'does not exist in', deparse(tmp[[2]]), '!!!'))
+      if (!group.var %in% names(ae_data)) stop(paste(tmp$group.var, 'does not exist in', deparse(tmp$ae_data), '!!!'))
   }
-  if (!arm.var %in% names(fullid_data)){stop(paste(tmp[[9]], "does not exist in", deparse(tmp[[3]]), "!!!"))}
+  if (!arm.var %in% names(fullid_data)){stop(paste(tmp$arm.var, "does not exist in", deparse(tmp$fullid_data), "!!!"))}
   if (!missing(sort.by)){
     sort.by <- rlang::enquo(sort.by)
     sort.vars <- all.vars(sort.by)
