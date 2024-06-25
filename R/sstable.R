@@ -599,18 +599,28 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   tmp <- match.call()
   if (length(aetype.var) > 1){
     env <- rlang::caller_env()
+    n.grade<-length(unique(na.omit(ae_data[, grade.var])))
     tbl1_call <- tmp
     tbl1_call$aetype.var <- aetype.var[[1]]
+    tbl1_call$flextable <- FALSE
     tbl1 <- eval(tbl1_call, envir = env)
     tbl2p <-
       lapply(aetype.var[-1],
              function(.aetype.var){
                tbl_call <- tmp
                tbl_call$aetype.var <- .aetype.var
-               tbl_call$grade.var = NULL
+               tbl_call$flextable <- FALSE
+               # tbl_call$grade.var = NULL
                eval(tbl_call, envir=env)
              })
-     return(rbind(tbl1, do.call(rbind, tbl2p)))
+    tbl2 <- tbl2p[[1]]
+
+    # tbl2$table <- tbl2$table[-c(1:(3+n.grade)),]
+    for (tbl3 in tbl2p[-1]) tbl2 <- .do_rbind(tbl2, tbl3, header=c(1:(3+n.grade)))
+    # browser()
+     out <- ._do_rbind(tbl1, tbl2, header=c(1:(3+n.grade)))
+     if (flextable) return(ss_flextable(out))
+     return(out)
     }
 
   ## check variable's name
@@ -688,7 +698,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   ae_arm <- merge(idarm, ae, by = "id", all.y = TRUE) %>%
     mutate(arm = addNA(factor(as.character(arm), levels = arm_lev, exclude = NULL), ifany = TRUE),
            aetype = addNA(factor(as.character(aetype), levels = aetype_lev, exclude = NULL), ifany = TRUE))
-
+  idarm2 <- ae_arm |> select(id, arm)
   ## calculate episodes and patients
   ae_count <- ae_arm %>%
     group_by(aetype, arm) %>%
@@ -703,7 +713,8 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   episode_n[is.na(episode_n)] <- 0
   patient_n <- unlist(spread(select(ae_count, -n_episode), key = arm, value = n_patient)[, -1])
   patient_n[is.na(patient_n)] <- 0
-  patient_N <- rep(table(idarm$arm), each = nlevels(ae_arm$aetype))
+  patient_N <- rep(table(idarm2$arm), each = nlevels(ae_arm$aetype))
+  # tryCatch(patient_n/patient_N, warning=function(w) browser())
   patient_p <- patient_n/patient_N
 
   ## table
