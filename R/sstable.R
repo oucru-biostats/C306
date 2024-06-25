@@ -1538,7 +1538,8 @@ result <- sstable.survcomp(model = base.model, data = data, time=time, reference
 }
 
 #' @export
-print.ss_tbl <- function(sstable){
+print.ss_tbl <- function(sstable, pretty=getOption('ss_pretty.print', TRUE)){
+  if (!pretty) return(print.default(sstable))
   tryCatch(
     {
       print(huxtable::as_hux(sstable) |> huxtable::theme_article())

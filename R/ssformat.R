@@ -673,13 +673,14 @@ rbind.ss_obj <- function(tbl1, tbl2, footer=NULL, ...){
   new_tbl$table <- rbind(tbl1$table, tbl2$table[-header,])
   new_tbl$footer <- tbl1$footer
   class(new_tbl$table) <- class(tbl1$table)
+  new_tbl
 }
 
 #' @rdname rbind.ss_obj
 #' @method rbind ss_ae
 #' @export
 rbind.ss_ae <- function(tbl1, tbl2, footer=NULL){
-  if (!all_equal(tbl1$footer, tbl2$footer) & is.null(footer))
+  if (!all.equal(tbl1$footer, tbl2$footer) & is.null(footer))
     stop('Two footers mismatched. Perhaps two tbl are using different config? \n
          To ignore this, set a specific footer.')
   out <- ._do_rbind(tbl1, tbl2, header=1:3)
@@ -691,7 +692,7 @@ rbind.ss_ae <- function(tbl1, tbl2, footer=NULL){
 #' @method rbind ss_survcomp
 #' @export
 rbind.ss_survcomp <- function(tbl1, tbl2, footer=NULL){
-  if (!all_equal(tbl1$footer, tbl2$footer) & is.null(footer))
+  if (!all.equal(tbl1$footer, tbl2$footer) & is.null(footer))
     stop('Two footers mismatched. Perhaps two tbl are using different config? \n
          To ignore this, set a specific footer.')
   out <- ._do_rbind(tbl1, tbl2, header=1:3)
@@ -703,7 +704,7 @@ rbind.ss_survcomp <- function(tbl1, tbl2, footer=NULL){
 #' @method rbind ss_baseline
 #' @export
 rbind.ss_baseline <- function(tbl1, tbl2, footer=NULL){
-  if (!all_equal(tbl1$footer, tbl2$footer) & is.null(footer))
+  if (!all.equal(tbl1$footer, tbl2$footer) & is.null(footer))
     stop('Two footers mismatched. Perhaps two tbl are using different config? \n
          To ignore this, set a specific footer.')
   out <- ._do_rbind(tbl1, tbl2, header=1)
