@@ -595,8 +595,25 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   requireNamespace("dplyr")
   requireNamespace("tidyr")
 
-  ## check variable's name
   tmp <- match.call()
+  if (length(aetype.var) > 1){
+    env <- rlang::caller_env()
+    tbl1_call <- tmp
+    tbl1_call$aetype.var <- aetype.var[[1]]
+    tbl1 <- eval(tbl1_call, envir = env)
+    tbl2p <-
+      lapply(aetype.var[-1],
+             function(.aetype.var){
+               tbl_call <- tmp
+               tbl_call$aetype.var <- .aetype.var
+               tbl_call$grade.var = NULL
+               eval(tbl_call, envir=env)
+             })
+     return(rbind(tbl1, do.call(rbind, tbl2p)))
+    }
+
+  ## check variable's name
+
   if (!id.var %in% names(ae_data)){stop(paste(tmp$id.var, "does not exist in", deparse(tmp$ae_data), "!!!"))}
   if (!id.var %in% names(fullid_data)){stop(paste(tmp$id.var, "does not exist in", deparse(tmp$fullid_data), "!!!"))}
   if (!aetype.var %in% names(ae_data)){stop(paste(tmp$aetype.var, "does not exist in", deparse(tmp$ae_data), "!!!"))}

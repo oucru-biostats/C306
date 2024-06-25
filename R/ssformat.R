@@ -651,3 +651,62 @@ as_sstable.subgroup_logist_summary <- function(x, include_footnote = TRUE, flext
   if (include_footnote) return(list(table = sstable, footer = footer))
   sstable
 }
+
+
+#' Row-binding two sstables
+#' @description
+#' Row-binding two sstables
+#' @param tbl1,tbl2, two object of class sstables of the same template. Only export for technical use.
+#' @param footer [NULL] default is the joint footer of two ss_tbl
+#' @param ... args passed to the downstream method
+#' @export
+rbind.ss_tbl <- function(tbl1, tbl2, footer=NULL, ...){
+  if (!identical(class(tbl1), class(tbl2)))
+    stop('tbl1 and tbl2 must be of the same class.')
+  if (ncol(tbl1) != ncol(tbl2))
+    stop('Unmatched number of columns between tbl1 and tbl2.')
+  NextMethod('rbind')
+}
+
+._do_rbind <- function(tbl1, tbl2, header=1){
+  new_tbl <- list()
+  new_tbl$table <- rbind(tbl1$table, tbl2$table[-header,])
+  new_tbl$footer <- tbl1$footer
+  class(new_tbl$table) <- class(tbl1$table)
+}
+
+#' @rdname rbind.ss_tbl
+#' @method rbind ae_tbl
+#' @export
+rbind.ae_tbl <- function(tbl1, tbl2, footer=NULL){
+  if (!all_equal(tbl1$footer, tbl2$footer) & is.null(footer))
+    stop('Two footers mismatched. Perhaps two tbl are using different config? \n
+         To ignore this, set a specific footer.')
+  out <- ._do_rbind(tbl1, tbl2, header=1:3)
+  if (!is.null(footer)) out$footer <- footer
+  out
+}
+
+#' @rdname rbind.ss_tbl
+#' @method rbind survcomp_tbl
+#' @export
+rbind.survcomp_tbl <- function(tbl1, tbl2, footer=NULL){
+  if (!all_equal(tbl1$footer, tbl2$footer) & is.null(footer))
+    stop('Two footers mismatched. Perhaps two tbl are using different config? \n
+         To ignore this, set a specific footer.')
+  out <- ._do_rbind(tbl1, tbl2, header=1:3)
+  if (!is.null(footer)) out$footer <- footer
+  out
+}
+
+#' @rdname rbind.ss_tbl
+#' @method rbind baseline_tbl
+#' @export
+rbind.baseline_tbl <- function(tbl1, tbl2, footer=NULL){
+  if (!all_equal(tbl1$footer, tbl2$footer) & is.null(footer))
+    stop('Two footers mismatched. Perhaps two tbl are using different config? \n
+         To ignore this, set a specific footer.')
+  out <- ._do_rbind(tbl1, tbl2, header=1)
+  if (!is.null(footer)) out$footer <- footer
+  out
+}
