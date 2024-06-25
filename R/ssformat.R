@@ -660,10 +660,10 @@ as_sstable.subgroup_logist_summary <- function(x, include_footnote = TRUE, flext
 #' @param footer [NULL] default is the joint footer of two ss_tbl
 #' @param ... args passed to the downstream method
 #' @export
-rbind.ss_tbl <- function(tbl1, tbl2, footer=NULL, ...){
-  if (!identical(class(tbl1), class(tbl2)))
+rbind.ss_obj <- function(tbl1, tbl2, footer=NULL, ...){
+  if (!identical(class(tbl1$table), class(tbl2$table)))
     stop('tbl1 and tbl2 must be of the same class.')
-  if (ncol(tbl1) != ncol(tbl2))
+  if (ncol(tbl1$table) != ncol(tbl2$table))
     stop('Unmatched number of columns between tbl1 and tbl2.')
   NextMethod('rbind')
 }
@@ -675,10 +675,10 @@ rbind.ss_tbl <- function(tbl1, tbl2, footer=NULL, ...){
   class(new_tbl$table) <- class(tbl1$table)
 }
 
-#' @rdname rbind.ss_tbl
-#' @method rbind ae_tbl
+#' @rdname rbind.ss_obj
+#' @method rbind ss_ae
 #' @export
-rbind.ae_tbl <- function(tbl1, tbl2, footer=NULL){
+rbind.ss_ae <- function(tbl1, tbl2, footer=NULL){
   if (!all_equal(tbl1$footer, tbl2$footer) & is.null(footer))
     stop('Two footers mismatched. Perhaps two tbl are using different config? \n
          To ignore this, set a specific footer.')
@@ -688,9 +688,9 @@ rbind.ae_tbl <- function(tbl1, tbl2, footer=NULL){
 }
 
 #' @rdname rbind.ss_tbl
-#' @method rbind survcomp_tbl
+#' @method rbind ss_survcomp
 #' @export
-rbind.survcomp_tbl <- function(tbl1, tbl2, footer=NULL){
+rbind.ss_survcomp <- function(tbl1, tbl2, footer=NULL){
   if (!all_equal(tbl1$footer, tbl2$footer) & is.null(footer))
     stop('Two footers mismatched. Perhaps two tbl are using different config? \n
          To ignore this, set a specific footer.')
@@ -700,9 +700,9 @@ rbind.survcomp_tbl <- function(tbl1, tbl2, footer=NULL){
 }
 
 #' @rdname rbind.ss_tbl
-#' @method rbind baseline_tbl
+#' @method rbind ss_baseline
 #' @export
-rbind.baseline_tbl <- function(tbl1, tbl2, footer=NULL){
+rbind.ss_baseline <- function(tbl1, tbl2, footer=NULL){
   if (!all_equal(tbl1$footer, tbl2$footer) & is.null(footer))
     stop('Two footers mismatched. Perhaps two tbl are using different config? \n
          To ignore this, set a specific footer.')
