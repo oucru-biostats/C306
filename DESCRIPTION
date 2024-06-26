@@ -42,7 +42,7 @@ Imports:
     purrr,
     formula.tools,
     eventglm,
-    ggplot,
+    ggplot2,
     survminer,
     ggsurvfit
 RoxygenNote: 7.3.1
