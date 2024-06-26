@@ -36,7 +36,6 @@ Imports:
     readxl,
     flextable,
     officer,
-    survival,
     tidyr,
     rlang,
     purrr,
@@ -44,7 +43,8 @@ Imports:
     eventglm,
     ggplot2,
     survminer,
-    ggsurvfit
+    ggsurvfit,
+    survival
 RoxygenNote: 7.3.1
 Suggests: knitr,
     rmarkdown,
