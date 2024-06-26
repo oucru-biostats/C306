@@ -12,6 +12,7 @@ gg_ajsurvplot2(
   na.action,
   main.event,
   competing.event,
+  facet.by = ~strata,
   count,
   id,
   timefix,
@@ -27,6 +28,8 @@ gg_ajsurvplot2(
 \item{weights, subset, na.action, , count, id, timefix}{parameter passed to finegray model. See \code{\link[survival:finegray]{finegray}},}
 
 \item{main.event, competing.event}{main and competing event to plot}
+
+\item{facet.by}{formula. default to all strata}
 
 \item{...}{optional parameters passed to \code{ggsurvplot}.}
 

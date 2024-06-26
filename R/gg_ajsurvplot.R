@@ -70,11 +70,11 @@ untidy_strata <- function(x, strata.col='strata') {
 #' @param x,times,type same as \link[ggsurvfit:tidy_survfit]{tidy_survfit}
 #' @export
 tidy_survfit2 <- function(x, times=NULL, type='survival'){
-  ggsurvfit::tidy_survfit(x, times=NULL, type) |>
+  ggsurvfit::tidy_survfit(x, times=times, type) |>
     untidy_strata()
 }
 
-#' Plot 2 Aalen-Johansen curve with ggplot for competing risks
+#' Plot 2 Aalen-Johansen curves with ggplot for competing risks
 #' @description
 #' Extend \link[ggsurvfit:ggsurvfit]{ggsurvfit} functionality to plot competing risk curve, with main risk and competing risk in one plot
 #'
@@ -82,16 +82,19 @@ tidy_survfit2 <- function(x, times=NULL, type='survival'){
 #' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model
 #' @param weights,subset,na.action,,count,id,timefix parameter passed to finegray model. See \code{\link[survival:finegray]{finegray}},
 #' @param main.event,competing.event main and competing event to plot
+#' @param facet.by formula. default to all strata
 #' @param ... optional parameters passed to \code{ggsurvplot}.
 #' @param .return_data [FALSE] if TRUE, get the data instead.
+#' @import ggplot2
 #' @export
-gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event, competing.event, count, id, timefix, ..., .return_data=FALSE){
+gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event, competing.event, facet.by = ~strata, count, id, timefix, ..., .return_data=FALSE){
   dot <- list(...)
   fgargs <- match.call()[-1]
+  fgargs$facet.by <- NULL
   fgargs$.return_data <- NULL
   fgargs <- as.list(fgargs[setdiff(names(fgargs), names(dot))])
 
-  etypes <- with(fgargs, c(main.event, competing.event))
+  etypes <- with(fgargs, list(main.event, competing.event))
   fgargs.each <- lapply(etypes, function(etype) {
     new.arg <- fgargs
     new.arg$etype <- etype
@@ -113,7 +116,27 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
   dt <- rbind(tidy1, tidy2)
   if (.return_data) return(dt)
 
-  ggplot(aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, group=event)) +
+  # facet <- if (formula.tools::is.formula(facet.by)) if (length(formula.tools::lhs.vars(facet.by)))
+    # facet_grid(facet.by) else facet_wrap(facet.by)
+  facet <- if (!is.null(facet.by))
+    if (length(formula.tools::lhs.vars(facet.by))) facet_grid(facet.by) else facet_wrap(facet.by)
+
+  if (is.null(facet.by))
+    return(
+      ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, fill=Event, color=strata)) +
+        geom_step(linewidth=1) +
+        ggsurvfit::theme_ggsurvfit_default()
+    )
+  # browser()
+  facet.vars <- formula.tools::get.vars(facet.by)
+  for (v in facet.vars) dt$strata <- gsub(
+    paste0(v,'=.*(,\\s)|$'), '', dt$strata, perl=T)
+  plt <- if (all(dt$strata == ''))
+   ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, group=Event))
+  else
+    ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, fill=Event, color=strata))
+  plt +
     geom_step(linewidth=1) +
-    ggsurvfit::theme_ggsurvfit_default()
+    ggsurvfit::theme_ggsurvfit_default() + facet
+
 }

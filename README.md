@@ -12,7 +12,7 @@ You can install C306 from github with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("oucru-biostats/C306@feature-rmst")
+devtools::install_github("oucru-biostats/C306@feature-rbind")
 ```
 
 ## List of functions
@@ -46,6 +46,20 @@ supporting function to convert them to flextable or huxtable.
   huxtable to follow a sstable-esque theme
 - `as_sstable` converting objects to sstable
 
+## Plotting functions for Aalen-Johansen curves
+
+- `gg_boxcox` same with `MASS::boxcox` but in ggplot
+- `ggsurvfit2` same as `ggsurvfit::ggsurvfit` but with strata separated.
+  Note that it relies on `tidy_survfit2` and does not work with
+  `ggsurvfit::survfit2` at the moment.
+- `gg_ajsurvplot` plots one Aalen-Johansen curve for competing risks for
+  the event of interest. Note that this is based on `surviminer` due to
+  its flexibility
+- `gg_ajsurvplot2` plots **two** Aalen-Johansen curves for main risk
+  (from bottom) and competing risk (from top). Note that this is based
+  `ggsurvfit` with some limitations. However, it has the ability to
+  return a dataset for more flexibility in plotting with ggplot.
+
 ### OUCRU function written by Lam PK
 
 - `import.info` and `convert.info` import and convert OUCRU dictionary
@@ -60,17 +74,14 @@ supporting function to convert them to flextable or huxtable.
 
 - `logist_summary` based on a function by OUCRU Biostats group,
   reporting the OR of logistic regression
-
 - `subgroup_effect` extends `logist_summary` to report the subgroup OR
   of variables that have interaction with a common covariate
   (i.e. treatment arm).
-
-- `gg_boxcox` same with `MASS::boxcox` but in ggplot
-
 - `mutate_f` and `summarise_f` perform multiple assignment for
   data.frame by `c(a,b):=list(v_a, v_b)`
-
 - `simple_relevel` relevels a factor correposnding to the level of
   another factor
-
 - `simple_recode` pattern-based recoding of data by in-place replacement
+- `tidy_survfit2` same as but with strata saved for easier plotting.
+  Note that it, at the moment, does not work with `ggsurvfit::survfit2`
+  ironically.
