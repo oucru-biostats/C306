@@ -370,7 +370,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
     class(tab$table) <- c('baseline_tbl', 'ss_tbl', class(tab$table))
   }
   ## output
-  class(tab) <- c('ss_baseline','ss_obj')
+  if (!flextable) class(tab) <- c('ss_baseline','ss_obj')
   return(tab)
 }
 
@@ -992,7 +992,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
                 footer = footer)
     class(tab$table) <- c('ae_tbl', 'ss_tbl', class(tab$table))
   }
-  class(tab) <- c('ss_ae','ss_obj')
+  if (!flextable) class(tab) <- c('ss_ae','ss_obj')
   return(tab)
 }
 
@@ -1325,7 +1325,7 @@ sstable.survcomp <- function(
                 footer = footer)
     class(tab$table) <- c('survcomp_tbl', 'ss_tbl', class(tab$table))
   }
-  class(tab) <- 'ss_obj'
+  if (!flextable) class(tab) <- c('ss_survcomp','ss_obj')
   return(tab)
 }
 
@@ -1544,7 +1544,7 @@ result <- sstable.survcomp(model = base.model, data = data, time=time, reference
                 footer = footer)
     class(tab$table) <- c('survcomp_tbl', 'ss_tbl', class(tab$table))
   }
-  class(tab) <- c('ss_survcomp','ss_obj')
+  if (!flextable) class(tab) <- c('ss_survcomp','ss_obj')
   return(tab)
 }
 
