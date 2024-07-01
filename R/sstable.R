@@ -276,7 +276,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   #### summary statistics
   if ((is.null(z) & any(continuous)) | (!is.null(z) & !is.factor(z))) {
     footer.con <- paste0(switch(statistics,
-                                med.IQR = "median (1st and 3rd quartiles))",
+                                med.IQR = "median (1st and 3rd quartiles)",
                                 med.90  = "median (90% range)",
                                 med.range = "median (range)",
                                 mean.sd = "mean (sd)"),
