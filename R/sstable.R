@@ -928,8 +928,8 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   }
 
   ### footer
-  footer <- c("n episode refer to the number of adverse events in each study arm.",
-              "n patient refer to the number of patients with at least one event in each study arm.",
+  footer <- c("n episode refers to the number of adverse events in each study arm.",
+              "n patient refers to the number of patients with at least one event in each study arm.",
               if (any(value == "-")) "- : value cannot be estimated." else NULL,
               if (test) {paste("p-values were based on",
                                ifelse(chisq.test == FALSE, "Fisher's exact test", "Chi-squared test if applicable and Fisher's exact test otherwise "),
