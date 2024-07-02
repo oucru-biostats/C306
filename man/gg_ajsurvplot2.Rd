@@ -2,7 +2,7 @@
 % Please edit documentation in R/gg_ajsurvplot.R
 \name{gg_ajsurvplot2}
 \alias{gg_ajsurvplot2}
-\title{Plot 2 Aalen-Johansen curve with ggplot for competing risks}
+\title{Plot 2 Aalen-Johansen curves with ggplot for competing risks}
 \usage{
 gg_ajsurvplot2(
   formula,
