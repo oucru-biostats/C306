@@ -182,12 +182,16 @@ ss_flextable <- function(sstable, ...){
 
 #' @rdname ss_flextable
 #' @method ss_flextable list
-#' @method ss_flextable ss_obj
 #' @param add_footer additional footer lines to be appended to object footers
 #' @export
-ss_flextable.list <- ss_flextable.ss_obj <- function(sstable, add_footer = NULL,...){
+ss_flextable.list <- function(sstable, add_footer = NULL,...){
   ss_flextable(sstable$table, footer = c(sstable$footer, add_footer), ...)
 }
+
+#' @rdname ss_flextable
+#' @method ss_flextable ss_obj
+#' @export
+ss_flextable.ss_obj <- ss_flextable.list
 
 #' @rdname ss_flextable
 #' @export
