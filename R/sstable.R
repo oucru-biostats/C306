@@ -1387,7 +1387,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
 
   ## strip the tibble class which causes issue - trinhdhk
   data <- as.data.frame(data)
-  NAs <- model.frame(update(model, .~1), data=data) |> attr('na.action') |> unname()
+  NAs <- model.frame(update(base.model, .~1), data=data) |> attr('na.action') |> unname()
   if (length(NAs)){
     warning(sprintf('Missing values on observation(s) %s',
                     paste(NAs,collapse=', ')))
