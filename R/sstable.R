@@ -1049,12 +1049,11 @@ sstable.survcomp <- function(
   # Initialise the table --------------------------
   ## strip the tibble class which causes issue - trinhdhk
   data <- as.data.frame(data)
-  if (sum(complete.cases(model.frame(update(model, .~1), data=data))) < nrow(data))
+  NAs <- model.frame(update(model, .~1), data=data) |> attr('na.action') |> unname()
+  if (length(NAs))
     warning(sprintf('Missing values on observation(s) %s',
-                    paste(
-                      which(!complete.cases(model.frame(update(model, .~1), data=data))),
-                      collapse=', ')))
-  data <- data[complete.cases(model.frame(update(model, .~1), data=data)),]
+                    paste(NAs,collapse=', ')))
+  data <- data[seq_len(nrow(data))[-NAs],]
   compare.method <- match.arg(compare.method)
   reference.arm <- match.arg(reference.arm)
 
