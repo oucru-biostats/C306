@@ -991,7 +991,10 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     tab <- flextable::hline_top(tab, border = tabbd, part = "all")
     tab <- flextable::hline_bottom(tab, border = tabbd, part = "body")
     ### group-name rows-trinhdhk
-    if (is.grouped) tab <- flextable::merge_h_range(tab, grouptitle_index, 1, ncol(ae_value))
+    if (is.grouped) {
+      tab <- flextable::merge_h_range(tab, grouptitle_index, 1, ncol(ae_value))
+      tab <- flextable::bold(tab, i = grouptitle_index, part = "body") # Bold the group.var rows
+    }
 
   } else {
     tab <- list(table = rbind(header1, header2, ae_value),
