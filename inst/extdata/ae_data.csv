@@ -11,7 +11,7 @@ usubjid,ctcaename,ctcaegrade,original_ctcaegrade,posrelunrel,unexp
 003-073,Hemorrhoids,I,I,UNREL,N
 003-087,Skin allergy,II,NA,REL,N
 003-095,Phlebitis,I,I,UNREL,N
-003-105,pharyngitis,II,II,UNREL,Y
+003-105,Pharyngitis,II,II,UNREL,Y
 003-109,Hospital acquired pneumonia,II,NA,UNREL,N
 003-122,Headache,I,I,POSREL,N
 003-135,Phlebitis,I,I,UNREL,N
