@@ -1053,7 +1053,8 @@ sstable.survcomp <- function(
   if (length(NAs)){
     warning(sprintf('Missing values on observation(s) %s',
                     paste(NAs,collapse=', ')))
-    data <- data[seq_len(nrow(data))[-NAs],]
+    # data <- data[seq_len(nrow(data))[-NAs],]
+    data <- dplyr::slice(data, seq_len(nrow(data))[-NAs])
   }
 
   compare.method <- match.arg(compare.method)
@@ -1391,7 +1392,8 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   if (length(NAs)){
     warning(sprintf('Missing values on observation(s) %s',
                     paste(NAs,collapse=', ')))
-    data <- data[seq_len(nrow(data))[-NAs],]
+    # data <- data[seq_len(nrow(data))[-NAs],]
+    data <- dplyr::slice(data, seq_len(nrow(data))[-NAs])
   }
   compare.method <- match.arg(compare.method)
 
