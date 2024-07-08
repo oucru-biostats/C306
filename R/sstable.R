@@ -596,6 +596,12 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   requireNamespace("dplyr")
   requireNamespace("tidyr")
 
+  # Check if grade.var is not NULL and has any NA values
+  if (!is.null(grade.var) && any(is.na(ae_data[[grade.var]]))) {
+    # Replace NA values with "Grade NA"
+    ae_data[[grade.var]][is.na(ae_data[[grade.var]])] <- "Grade NA"
+  }
+
   tmp <- match.call()
   if (length(aetype.var) > 1){
     env <- rlang::caller_env()
@@ -985,7 +991,10 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     tab <- flextable::hline_top(tab, border = tabbd, part = "all")
     tab <- flextable::hline_bottom(tab, border = tabbd, part = "body")
     ### group-name rows-trinhdhk
-    if (is.grouped) tab <- flextable::merge_h_range(tab, grouptitle_index, 1, ncol(ae_value))
+    if (is.grouped) {
+      tab <- flextable::merge_h_range(tab, grouptitle_index, 1, ncol(ae_value))
+      tab <- flextable::bold(tab, i = grouptitle_index, part = "body") # Bold the group.var rows
+    }
 
   } else {
     tab <- list(table = rbind(header1, header2, ae_value),
