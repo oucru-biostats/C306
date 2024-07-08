@@ -583,13 +583,14 @@ sstable.baseline.each <- function(varname, x, y, z, bycol = TRUE, pooledGroup = 
 #' @param footer a vector of strings to be used as footnote of table.
 #' @param flextable a logical value specifies whether output will be a flextable-type table.
 #' @param bg a character specifies color of the odd rows in the body of flextable-type table.
+#' @param group.var.priority a vector that specifies which groups will be appear first in the table.
 #'
 #' @return a flextable-type table or a list with values/headers/footers
 #' @import dplyr
 #' @import tidyr
 #' @export
 sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.var, grade.var = NULL,
-                       group.var = NULL, arm.var, sort.by, digits = 0,
+                       group.var = NULL, group.var.priority = NULL, arm.var, sort.by, digits = 0,
                        test = TRUE, pdigits = 3, pcutoff = 0.001, chisq.test = FALSE, correct = FALSE,
                        simulate.p.value = FALSE, B = 2000, workspace = 1000000, hybrid = FALSE,
                        footer = NULL, flextable = TRUE, bg = "#F2EFEE"){
@@ -747,6 +748,12 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     group_data <- group_data[, c(aetype.var, group.var)]
     group_data[,aetype.var] <- as.character(group_data[,aetype.var])
     names(group_data) <- c(aetype.var, '.tmp.group')
+
+if (!is.null(group.var.priority)) {
+  # Reorder group.var based on group.var.priority
+  group_data <- group_data %>%
+    mutate(.tmp.group = factor(.tmp.group, levels = c(group.var.priority, setdiff(unique(.tmp.group), group.var.priority)), ordered = TRUE))
+}
   # } else {
   #   ## - create a fake grouping
   #   group_data <- data.frame(ae = aetype_lev.raw, group=1, stringsAsFactors = FALSE)
