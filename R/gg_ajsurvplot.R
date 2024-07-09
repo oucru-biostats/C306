@@ -105,7 +105,7 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
   fg1 <- do.call(survival::finegray, fgargs.each[[1]])
   fg2 <- do.call(survival::finegray, fgargs.each[[2]])
   # browser()
-  fml <- force(update(formula, Surv(fgstart,fgstop,fgstatus)~.))
+  fml <- force(update(formula, survival::Surv(fgstart,fgstop,fgstatus)~.))
 
   sf1 <- eval(substitute(survival::survfit(fml, data = fg1,  weights=fgwt), list(fml=fml)))
   sf2 <- eval(substitute(survival::survfit(fml, data = fg2,  weights=fgwt), list(fml=fml)))
