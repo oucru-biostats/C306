@@ -12,6 +12,7 @@ sstable.ae(
   aetype.var,
   grade.var = NULL,
   group.var = NULL,
+  group.var.priority = NULL,
   arm.var,
   sort.by,
   digits = 0,
@@ -43,6 +44,8 @@ sstable.ae(
 \item{grade.var}{NULL or character specifies name of adverse event grade variable (exists in adverse event data).}
 
 \item{group.var}{a character specifies group (exists in adverse event data if group_data = NULL or group_data otherwise).}
+
+\item{group.var.priority}{a vector that specifies which groups will be appear first in the table.}
 
 \item{arm.var}{a character specifies name of treatment arm variable (exists in treatment arm data).}
 
