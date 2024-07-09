@@ -130,7 +130,7 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
   # browser()
   facet.vars <- formula.tools::get.vars(facet.by)
   for (v in facet.vars) dt$strata <- gsub(
-    paste0(v,'=.*(,\\s)|$'), '', dt$strata, perl=T)
+    paste0('(,\\s)?',v,'=.*(,\\s|$)'), '', dt$strata, perl=T)
   plt <- if (all(dt$strata == ''))
    ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, group=Event))
   else
