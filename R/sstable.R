@@ -1024,7 +1024,7 @@ if (!is.null(group.var.priority)) {
 #' @param time [\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
 #' @param reference.arm [\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
-#' @param compare.method [\code{cox}] a string, either "cox" for CoxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time.
+#' @param compare.method [\code{cox}] a string, either "cox" for CoxPH model, "cuminc" for cumulative incidence, or "rmst" for restricted mean survival time.
 #' Note that if "cox" is specified and model is a mstate model, a Fine-Gray model is used.
 #' If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.
 #'
@@ -1413,7 +1413,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
 #' @param time [\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
 #' @param reference.arm [\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
-#' @param compare.method [\code{cox}] a string, either "cox" for CoxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time.
+#' @param compare.method [\code{cox}] a string, either "cox" for CoxPH model, "cuminc" for cumulative incidence, or "rmst" for restricted mean survival time.
 #' Note that if "cox" is specified and model is a mstate model, a Fine-Gray model is used.
 #' If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.
 #'
