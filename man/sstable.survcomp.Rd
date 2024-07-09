@@ -35,7 +35,7 @@ sstable.survcomp(
 
 \item{reference.arm}{[\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm}
 
-\item{compare.method}{[\code{cox}] a string, either "cox" for CoxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time.
+\item{compare.method}{[\code{cox}] a string, either "cox" for CoxPH model, "cuminc" for cumulative incidence, or "rmst" for restricted mean survival time.
 Note that if "cox" is specified and model is a mstate model, a Fine-Gray model is used.
 If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.}
 
