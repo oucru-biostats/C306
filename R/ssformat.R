@@ -102,7 +102,12 @@ ss_format <- function(sstable, header = c(), section = c(), body = c(), template
   if (!is.na(template)) template <- match.arg(template)
   sstable <- ss_template(sstable, template = template)
   if (.guess) {
-    no.guess <- na.omit(as.numeric(c(header, section, body)))
+    no.guess.in.table <- which(grepl(
+      '(header)|(section)|(body)',
+      rownames(sstable),
+      perl = TRUE
+    ))
+    no.guess <- union(no.guess.in.table, na.omit(as.numeric(c(header, section, body))))
     # filter out from guess what have been defined
     guess <- ss_guess_format(sstable)
     h <- which(guess == 'header')
@@ -260,10 +265,13 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
 
   ## section format
   for (k in section){
-    ft <- flextable::bold(ft, i = k-length(header), j = 1:ncol(sstable), part = 'body')
+
     ### merging cells that from the left if the whole row is empty
     if (all(sstable[k, -1] == '') %in% TRUE)
       ft <- flextable::merge_at(ft, i = k, j = 1:ncol(sstable), part = 'body')
+    else ft <- flextable::merge_h(ft, i = k , part = 'body')
+
+    ft <- flextable::bold(ft, i = k-length(header), j = 1, part = 'body')
   }
 
   ## format flextable
