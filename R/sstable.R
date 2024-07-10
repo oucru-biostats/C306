@@ -1056,7 +1056,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     ### group-name rows-trinhdhk
     if (is.grouped) {
       tab <- flextable::merge_h_range(tab, grouptitle_index, 1, ncol(ae_value))
-      tab <- flextable::bold(tab, i = grouptitle_index, part = "body") # Bold the group.var rows
+      tab <- flextable::bold(tab, i = grouptitle_index, part = "body") # Bold the group.var rows - hungtt
     }
 
   } else {
