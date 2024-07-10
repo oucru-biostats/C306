@@ -1607,12 +1607,6 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
         )[2, "Pr(>Chi)"]
       }
       # browser()
-      anova(
-        do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
-        do.call(eventglm::rmeanglm, append(ia.args, c(formula=main.model))),
-        test = "Chisq"
-      )[2, "Pr(>Chi)"]
-    }
 
     result[nrow(result), ncol(result)] <- format.pval(ia.pval, digits = pdigits, eps = pcutoff)
 
