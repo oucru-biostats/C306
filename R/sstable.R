@@ -913,7 +913,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 
   # browser()
   #make index 1 for case aetype.var = 1 -hungtt
-  index_aetype <- length(unique(ae_data[, grade.var]))
+  index_aetype.var <- length(unique(ae_data[, grade.var]))
   ## sorting - trinhdhk
   if (!missing(sort.by)){
     ## - the head will not be sorted.
@@ -1052,7 +1052,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     tab <- flextable::hline(tab, border = tabbd, part = "header")
     tab <- flextable::hline_top(tab, border = tabbd, part = "all")
     tab <- flextable::hline_bottom(tab, border = tabbd, part = "body")
-    tab <- flextable::bold(tab, i = index_aetype + 2, j=1, part = "body")
+    tab <- flextable::bold(tab, i = index_aetype.var + 2, j=1, part = "body")
     ### group-name rows-trinhdhk
     if (is.grouped) {
       tab <- flextable::merge_h_range(tab, grouptitle_index, 1, ncol(ae_value))
