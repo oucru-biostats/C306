@@ -130,7 +130,8 @@ contSummary <- function(x, statistics = c("med.IQR", "med.90", "med.range", "mea
 #' @param pooledGroup a logical value specifies whether to pool all subgroups of column variable.
 #' @param keepEmptyGroup a logical value specifying whether should keep empty groups
 #' @param statistics a character specifies summary statistics for continuous row variables.
-#' @param continuous a logical vector specifies whether each row variables is continuous or categorical.
+#' @param cont a vector specifies whether each row variables is continuous.
+#' @param cate a vector specifies whether each row variables is categorical.
 #' @param digits a number specifies number of significant digits for numeric statistics.
 #' @param test a logical value specifies whether a statistical test will be performed to compare between treatment arms.
 #' @param pdigits a number specifies number of significant digits for p value.
@@ -148,7 +149,7 @@ contSummary <- function(x, statistics = c("med.IQR", "med.90", "med.range", "mea
 #' @return a flextable-type table or a list with values/headers/footers
 #' @export
 sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, keepEmptyGroup = FALSE,
-                             statistics = "med.IQR", continuous = NA, fullfreq = TRUE, digits = 1,
+                             statistics = "med.IQR", cont = NULL, cate = NULL, fullfreq = TRUE, digits = 1,
                              test = FALSE, pdigits = 3, pcutoff = 0.0001,
                              chisq.test = FALSE, correct = FALSE, simulate.p.value = FALSE, B = 2000,
                              workspace = 1000000, hybrid = FALSE,
@@ -186,13 +187,17 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
 
   #browser()
 
-  ## determine type of x (argument: continuous)
-  if (length(continuous) == 1) {
-    continuous <- rep(continuous, ncol(x))
-  } else {
-    if (length(continuous) != ncol(x)) stop("continuous argument must have length 1 or similar length as number of row-wise variables !!!")
-  }
-
+  ## determine type of x (argument: cont and cate)
+  varlist <- getvar(formula) #hungtt
+  varlist <- varlist[-length(varlist)] #remove the y name
+  
+  # Convert varlist, cont, and cate to lowercase for case-insensitive comparison
+  varlist_lower <- tolower(varlist)
+  cont_lower <- tolower(cont)
+  cate_lower <- tolower(cate)
+  
+  continuous <- ifelse(varlist_lower %in% cont_lower, TRUE, ifelse(varlist_lower %in% cate_lower, FALSE, NA)) #assign var type
+  
   continuous <- sapply(1:ncol(x), function(i) {
     out <- ifelse(is.na(continuous[i]),
                   ifelse(any(c("factor", "character", "logical") %in% class(x[, i])) |
@@ -200,19 +205,19 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
                   continuous[i])
     return(out)
   })
-
-
+  
+  
   for (i in (1:ncol(x))) {
     if (continuous[i] == FALSE & !is.factor(x[, i])) x[, i] <- factor(x[, i], levels = sort(unique(na.omit(x[, i]))))
   }
-
+  
   ## if z exists, x must be categorical
   if (!is.null(z) & any(continuous == TRUE)) stop("Row-wise variable must be categorical when third dimension variable exists !!!")
-
+  
   ## if use by-row layout, x must be categorical
   #browser()
   if (bycol == FALSE & any(sapply(1:ncol(x), function(i) is.factor(x[,i])) == FALSE)) stop("Row-wise variable must be categorical in by-row layout !!!")
-
+  
   ## determine type of z
   if (!is.null(z)) {
     zdiscrete <- any(c("factor", "character", "logical") %in% class(unclass(z))) |
@@ -220,6 +225,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
     # if (zcontinuous == FALSE & !is.factor(z)) z <- factor(z, levels = unique(na.omit(z)))
     if (zdiscrete) z <- factor(z, levels = unique(na.omit(z)))
   }
+  
   # browser()
   ## digits
   if (length(digits) == 1) {
