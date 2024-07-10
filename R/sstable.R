@@ -216,7 +216,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   ## determine type of z
   if (!is.null(z)) {
     zdiscrete <- any(c("factor", "character", "logical") %in% class(unclass(z))) |
-                            (any(c("numeric", "integer") %in% class(unclass(z))) & length(unique(na.omit(z))) <= 5)
+      (any(c("numeric", "integer") %in% class(unclass(z))) & length(unique(na.omit(z))) <= 5)
     # if (zcontinuous == FALSE & !is.factor(z)) z <- factor(z, levels = unique(na.omit(z)))
     if (zdiscrete) z <- factor(z, levels = unique(na.omit(z)))
   }
@@ -602,6 +602,12 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     # Replace NA values with "Grade NA"
     ae_data[[grade.var]][is.na(ae_data[[grade.var]])] <- "Grade NA"
   }
+  # Check if any aetype.var is NA and replace with "NA"
+  for (var in aetype.var) {
+    if (any(is.na(ae_data[[var]]))) {
+      ae_data[[var]][is.na(ae_data[[var]])] <- "NA"
+    }
+  }
 
   tmp <- match.call()
   if (length(aetype.var) > 1){
@@ -611,6 +617,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     tbl1_call$aetype.var <- aetype.var[[1]]
     tbl1_call$flextable <- FALSE
     tbl1 <- eval(tbl1_call, envir = env)
+    rownames(tbl1$table)[4+n.grade] = 'section'
     tbl2p <-
       lapply(aetype.var[-1],
              function(.aetype.var){
@@ -618,17 +625,20 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
                tbl_call$aetype.var <- .aetype.var
                tbl_call$flextable <- FALSE
                # tbl_call$grade.var = NULL
-               eval(tbl_call, envir=env)
+               z = eval(tbl_call, envir=env)
+               rownames(z$table)[4+n.grade] = 'section'
+               z
              })
     tbl2 <- tbl2p[[1]]
 
     # tbl2$table <- tbl2$table[-c(1:(3+n.grade)),]
     for (tbl3 in tbl2p[-1]) tbl2 <- .do_rbind(tbl2, tbl3, header=c(1:(3+n.grade)))
     # browser()
-     out <- ._do_rbind(tbl1, tbl2, header=c(1:(3+n.grade)))
-     if (flextable) return(ss_flextable(out))
-     return(out)
-    }
+    out <- ._do_rbind(tbl1, tbl2, header=c(1:(3+n.grade)))
+    # rownames(out)[c(3,4,5,8)] <- 'section'
+    if (flextable) return(ss_flextable(out))
+    return(out)
+  }
 
   ## check variable's name
 
@@ -674,13 +684,35 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     idarm$arm <- with(idarm, factor(as.character(arm), levels = arm_lev, exclude = NULL))
   }
 
-  ## add aetype of "Any selected AE" & format aetype
-  ae_any <- ae_data; ae_any[, aetype.var] <- "Any selected adverse event"
-  ae <- rbind(ae_data, ae_any)
-  # aetype_lev <- c("Any selected adverse event", unique(as.character(ae_data[, aetype.var])))
-  # browser()
+  # Original data frame ae_data assumed to exist
+  # Ensure ae_data, ae_any, ae_grade, etc., are defined appropriately in your script
 
-  ## extract grades of ae
+  replace_with_var_names <- function(df, var, aetype_var) {
+  # Identify rows where aetype_var is not "NA"
+  not_na_rows <- df[[aetype_var]] != "NA"
+
+  # Replace values with variable names or labels only where not "NA"
+  if (!is.null(attr(df[[var]], "label"))) {
+    df[[aetype_var]][not_na_rows] <- attr(df[[var]], "label")  # Use label if available
+  } else {
+    df[[aetype_var]][not_na_rows] <- var  # Fallback to default label
+  }
+
+  # Delete rows where aetype_var is "NA"
+  df <- df[not_na_rows, , drop = FALSE]
+
+  return(df)
+}
+
+  # Example usage with ae_any data frame mutation
+  ae_any <- ae_data  # Assuming ae_data is your original data frame
+
+  mutated_data <- replace_with_var_names(ae_any, aetype.var, aetype.var)
+  ae_any[, aetype.var] <- "Any selected adverse event"
+  # Combine original and mutated data (assuming ae_data and ae_any exist)
+  ae <- rbind(ae_data, ae_any, mutated_data)
+
+  # Extract grades of ae (assuming grade.var exists)
   if (!is.null(grade.var)) {
     grade <- sort(unique(na.omit(ae_data[, grade.var])))
     grade2 <- ifelse(grepl(pattern = "grade", ignore.case = TRUE, x = grade), grade, paste("Grade", grade))
@@ -691,14 +723,28 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
                           return(tmpdat)
                         }))
     ae <- rbind(ae, ae_grade)
-    # aetype_lev <- c("Any selected adverse event", paste("-", grade2), unique(as.character(ae_data[, aetype.var])))
   }
-  ae <- ae[, c(id.var, aetype.var)]; colnames(ae) <- c("id", "aetype")
-  # browser()
 
+  # Select necessary columns and rename them
+  ae <- ae[, c(id.var, aetype.var)]
+  colnames(ae) <- c("id", "aetype")
+
+
+  # Get unique levels of aetype
   aetype_lev.raw <- unique(as.character(ae_data[[aetype.var]]))
+
+  # Check if aetype.var has a label attribute
+  if (!is.null(attr(ae_data[[aetype.var]], "label"))) {
+    aetype.var.label <- attr(ae_data[[aetype.var]], "label")
+  } else {
+    aetype.var.label <- aetype.var
+ # Use default label
+  }
+
+  # Construct aetype_lev with labels where available
   aetype_lev <- c("Any selected adverse event",
                   if (!is.null(grade.var)) paste("-", grade2),
+                  aetype.var.label,
                   aetype_lev.raw)
 
   ## add randomized arm to AE
@@ -706,6 +752,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     mutate(arm = addNA(factor(as.character(arm), levels = arm_lev, exclude = NULL), ifany = TRUE),
            aetype = addNA(factor(as.character(aetype), levels = aetype_lev, exclude = NULL), ifany = TRUE))
   idarm2 <- ae_arm |> select(id, arm)
+
   ## calculate episodes and patients
   ae_count <- ae_arm %>%
     group_by(aetype, arm) %>%
@@ -720,7 +767,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   episode_n[is.na(episode_n)] <- 0
   patient_n <- unlist(spread(select(ae_count, -n_episode), key = arm, value = n_patient)[, -1])
   patient_n[is.na(patient_n)] <- 0
-  patient_N <- rep(table(idarm2$arm), each = nlevels(ae_arm$aetype))
+  patient_N <- rep(table(idarm$arm), each = nlevels(ae_arm$aetype))
   # tryCatch(patient_n/patient_N, warning=function(w) browser())
   patient_p <- patient_n/patient_N
 
@@ -729,7 +776,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
   value <- matrix(ncol = nlevels(ae_arm$arm)*3, nrow = nlevels(ae_arm$aetype))
   value[, seq(from = 1, to = nlevels(ae_arm$arm)*2, by = 2)] <- episode_n
   value[, seq(from = 2, to = nlevels(ae_arm$arm)*2, by = 2)] <- paste0(patient_n, "/", patient_N,
-                                                             " (", formatC(100 * patient_p, digits, format = "f"), "%)")
+                                                                       " (", formatC(100 * patient_p, digits, format = "f"), "%)")
   ## add raw values to 2 dummy columns for sorting purpose
   value[, (nlevels(ae_arm$arm)*2 + 1):(nlevels(ae_arm$arm)*3)] <- patient_n
   ae_value <- cbind(aename = levels(ae_arm$aetype), value)
@@ -749,18 +796,18 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     group_data[,aetype.var] <- as.character(group_data[,aetype.var])
     names(group_data) <- c(aetype.var, '.tmp.group')
 
-if (!is.null(group.var.priority)) {
-  # Reorder group.var based on group.var.priority
-  group_data <- group_data %>%
-    mutate(.tmp.group = factor(.tmp.group, levels = c(group.var.priority, setdiff(unique(.tmp.group), group.var.priority)), ordered = TRUE))
-}
-  # } else {
-  #   ## - create a fake grouping
-  #   group_data <- data.frame(ae = aetype_lev.raw, group=1, stringsAsFactors = FALSE)
-  #   names(group_data) <- c(aetype.var, '.tmp.group')
-  # }
+    if (!is.null(group.var.priority)) {
+      # Reorder group.var based on group.var.priority
+      group_data <- group_data %>%
+        mutate(.tmp.group = factor(.tmp.group, levels = c(group.var.priority, setdiff(unique(.tmp.group), group.var.priority)), ordered = TRUE))
+    }
+    # } else {
+    #   ## - create a fake grouping
+    #   group_data <- data.frame(ae = aetype_lev.raw, group=1, stringsAsFactors = FALSE)
+    #   names(group_data) <- c(aetype.var, '.tmp.group')
+    # }
 
-  # browser()
+    # browser()
 
     ### bind group back to summary table -trinhdhk
     ae_value.headless <-
@@ -816,7 +863,7 @@ if (!is.null(group.var.priority)) {
                          simulate.p.value = simulate.p.value, B = B,
                          workspace = workspace, hybrid = hybrid){
       chi.out <- tryCatch(suppressWarnings(chisq.test(x = mat, correct = correct,
-                                     simulate.p.value = simulate.p.value, B = B)),
+                                                      simulate.p.value = simulate.p.value, B = B)),
                           error = function(e) NA)
       if (length(chi.out) == 1) # that implicits the NA value, so no more NA check here
         return(chi.out)
@@ -853,19 +900,20 @@ if (!is.null(group.var.priority)) {
 
     ## add grouping row - trinhdhk
     # browser()
-      ae_value <-
-        left_join(
-          ae_value,
-          cbind(aetype=aetype_lev, pval) %>%
-            as.data.frame(stringsAsFactors = FALSE) %>%
-            rename({{aetype.var}} := aetype),
-          by = aetype.var
-        ) %>%
-        mutate(pval = replace_na(as.character(pval), ''))
+    ae_value <-
+      left_join(
+        ae_value,
+        cbind(aetype=aetype_lev, pval) %>%
+          as.data.frame(stringsAsFactors = FALSE) %>%
+          rename({{aetype.var}} := aetype),
+        by = aetype.var
+      ) %>%
+      mutate(pval = replace_na(as.character(pval), ''))
   }
 
   # browser()
-
+  #make index 1 for case aetype.var = 1 -hungtt
+  index_aetype <- length(unique(ae_data[, grade.var]))
   ## sorting - trinhdhk
   if (!missing(sort.by)){
     ## - the head will not be sorted.
@@ -953,6 +1001,13 @@ if (!is.null(group.var.priority)) {
   if (flextable) {
     requireNamespace("flextable")
     requireNamespace("officer")
+    # return(ss_flextable({
+    #   tab <- list(table = rbind(header1, header2, ae_value),
+    #               footer = footer)
+    #   class(tab$table) <- c('ae_tbl', 'ss_tbl', class(tab$table))
+    #   class(tab) <- c('ss_ae','ss_obj')
+    #   tab
+    # }))
 
     ## main table
     colnames(ae_value) <- rep("", ncol(ae_value))
@@ -997,6 +1052,7 @@ if (!is.null(group.var.priority)) {
     tab <- flextable::hline(tab, border = tabbd, part = "header")
     tab <- flextable::hline_top(tab, border = tabbd, part = "all")
     tab <- flextable::hline_bottom(tab, border = tabbd, part = "body")
+    tab <- flextable::bold(tab, i = index_aetype + 2, j=1, part = "body")
     ### group-name rows-trinhdhk
     if (is.grouped) {
       tab <- flextable::merge_h_range(tab, grouptitle_index, 1, ncol(ae_value))
@@ -1065,6 +1121,14 @@ sstable.survcomp <- function(
   # Initialise the table --------------------------
   ## strip the tibble class which causes issue - trinhdhk
   data <- as.data.frame(data)
+  NAs <- model.frame(update(model, .~1), data=data) |> attr('na.action') |> unname()
+  if (length(NAs)){
+    warning(sprintf('Missing values on observation(s) %s',
+                    paste(NAs,collapse=', ')))
+    # data <- data[seq_len(nrow(data))[-NAs],]
+    data <- dplyr::slice(data, seq_len(nrow(data))[-NAs])
+  }
+
   compare.method <- match.arg(compare.method)
   reference.arm <- match.arg(reference.arm)
 
@@ -1079,19 +1143,19 @@ sstable.survcomp <- function(
   # Table header
   header1 <- c(paste(arm.names, " (n=", table(data[, arm.var]), ")", sep = ""), "Comparison")
   compare.stat <- switch(compare.method,
-    cox = 'HR',
-    cuminc = if (is.null(compare.args$type)) 'Cumul.inc difference'
-    else switch(compare.args$type,
-                diff = 'Cumul.inc difference',
-                ratio = 'Cumul.inc ratio',
-                stop('Illegal type for cumulative incidence comparison model')),
-    rmst = if (is.null(compare.args$type)) 'RMST difference'
-           else switch(compare.args$type,
-                      diff = 'RMST difference',
-                      lost.diff = 'RMTL difference',
-                      ratio = 'RMST ratio',
-                      lost.ratio = 'RMTL ratio',
-                      stop('Illegal type for RMST comparison model')))
+                         cox = 'HR',
+                         cuminc = if (is.null(compare.args$type)) 'Cumul.inc difference'
+                         else switch(compare.args$type,
+                                     diff = 'Cumul.inc difference',
+                                     ratio = 'Cumul.inc ratio',
+                                     stop('Illegal type for cumulative incidence comparison model')),
+                         rmst = if (is.null(compare.args$type)) 'RMST difference'
+                         else switch(compare.args$type,
+                                     diff = 'RMST difference',
+                                     lost.diff = 'RMTL difference',
+                                     ratio = 'RMST ratio',
+                                     lost.ratio = 'RMTL ratio',
+                                     stop('Illegal type for RMST comparison model')))
 
   header2 <- c(rep(ifelse(add.risk, "events/n (risk [%])", "events/n"), length(arm.names)), paste(compare.stat, if (p.compare) "(95%CI); p-value" else "(95%CI)"))
   header <- rbind(header1, header2)
@@ -1147,8 +1211,8 @@ sstable.survcomp <- function(
   if (compare.method == "cox"){
     if (!is.null(compare.args$add.prop.haz.test)) add.prop.haz.test <- compare.args$add.prop.haz.test
     if (length(events.n) < length(arm.names)) {
-    result[3, length(arm.names) + 1] <- "-"
-    if (add.prop.haz.test){result <- cbind(result, c("Test for proportional hazards", "p-value", "-"))}
+      result[3, length(arm.names) + 1] <- "-"
+      if (add.prop.haz.test){result <- cbind(result, c("Test for proportional hazards", "p-value", "-"))}
     } else {
       compare.args$add.prop.haz.test <- NULL
       compare.args$formula <- model
@@ -1162,21 +1226,21 @@ sstable.survcomp <- function(
 
       result[3, length(arm.names) + 1] <-
         ifelse(is.na(est),"-",
-        {
-          se <- sqrt(fit.coxph$var)[[1]] # trinhdhk: if there were more covariables than just arm, $var returns a var-cov mat, this first element is the var of arm (given arm is the first covariable)
-          z <- abs(est/se)
-          pval <- format.pval((1 - pnorm(z)) * 2, eps = pcutoff, digits = pdigits)
-          ci <- sapply(est, \(.est) {
-            paste(formatC(exp(c(.est - qnorm(0.975) * se, .est + qnorm(0.975) * se)), digits, format = "f"), collapse = ", ")
-          })
-          if (p.compare){
-            hr.ci.p <- paste(hr, " (", ci, "); p=", pval, sep = "")
-          } else {
-            hr.ci.p <- paste(hr, " (", ci, ")", sep = "")
-          }
+               {
+                 se <- sqrt(fit.coxph$var)[[1]] # trinhdhk: if there were more covariables than just arm, $var returns a var-cov mat, this first element is the var of arm (given arm is the first covariable)
+                 z <- abs(est/se)
+                 pval <- format.pval((1 - pnorm(z)) * 2, eps = pcutoff, digits = pdigits)
+                 ci <- sapply(est, \(.est) {
+                   paste(formatC(exp(c(.est - qnorm(0.975) * se, .est + qnorm(0.975) * se)), digits, format = "f"), collapse = ", ")
+                 })
+                 if (p.compare){
+                   hr.ci.p <- paste(hr, " (", ci, "); p=", pval, sep = "")
+                 } else {
+                   hr.ci.p <- paste(hr, " (", ci, ")", sep = "")
+                 }
 
-          hr.ci.p
-        })
+                 hr.ci.p
+               })
 
       # add test for proportional hazards
       if (add.prop.haz.test){
@@ -1240,7 +1304,7 @@ sstable.survcomp <- function(
       }
 
       # Perform rmeanglm
-    # rmeanglm <- eventglm::rmeanglm
+      # rmeanglm <- eventglm::rmeanglm
       fitter <- if (compare.method == 'rmst') eventglm::rmeanglm else eventglm::cumincglm
       fit.rmst <- do.call(fitter, compare.args)
       est <- coef(fit.rmst)[2:(length(arm.names))] # get the coef for arm
@@ -1250,20 +1314,20 @@ sstable.survcomp <- function(
 
       result[3, length(arm.names) + 1] <-
         ifelse(is.na(est),"-",
-        {
-          summary.rmst <- summary(fit.rmst)$coefficients
-          p <- summary.rmst[2:length(arm.names), 'Pr(>|z|)']
-          pval <- format.pval(p, eps = pcutoff, digits = pdigits)
-          cf <- confint(fit.rmst)[2:length(arm.names),, drop=FALSE]
-          ci <- apply(cf, 1,
-            \(.cf) paste(formatC(sort(invlink(.cf)), digits, format = "f"), collapse = ", ")
-          )
-          if (p.compare){
-            diff.ci.p <- paste(diff, " (", ci, "); p=", pval, sep = "")
-          } else {
-            diff.ci.p <- paste(diff, " (", ci, ")", sep = "")
-          }
-        })
+               {
+                 summary.rmst <- summary(fit.rmst)$coefficients
+                 p <- summary.rmst[2:length(arm.names), 'Pr(>|z|)']
+                 pval <- format.pval(p, eps = pcutoff, digits = pdigits)
+                 cf <- confint(fit.rmst)[2:length(arm.names),, drop=FALSE]
+                 ci <- apply(cf, 1,
+                             \(.cf) paste(formatC(sort(invlink(.cf)), digits, format = "f"), collapse = ", ")
+                 )
+                 if (p.compare){
+                   diff.ci.p <- paste(diff, " (", ci, "); p=", pval, sep = "")
+                 } else {
+                   diff.ci.p <- paste(diff, " (", ci, ")", sep = "")
+                 }
+               })
     }
 
   }
@@ -1384,18 +1448,25 @@ sstable.survcomp <- function(
 #' @import survival
 #' @export
 sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
-  time = Inf,
-  reference.arm = c('B', 'A'),
-  compare.method = c('cox', 'rmst', 'cuminc'),
-  compare.args = list(),
-  p.compare = TRUE,
-  digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE", ...){
+                                      time = Inf,
+                                      reference.arm = c('B', 'A'),
+                                      compare.method = c('cox', 'rmst', 'cuminc'),
+                                      compare.args = list(),
+                                      p.compare = TRUE,
+                                      digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE", ...){
 
 
   requireNamespace("survival")
 
   ## strip the tibble class which causes issue - trinhdhk
   data <- as.data.frame(data)
+  NAs <- model.frame(update(base.model, .~1), data=data) |> attr('na.action') |> unname()
+  if (length(NAs)){
+    warning(sprintf('Missing values on observation(s) %s',
+                    paste(NAs,collapse=', ')))
+    # data <- data[seq_len(nrow(data))[-NAs],]
+    data <- dplyr::slice(data, seq_len(nrow(data))[-NAs])
+  }
   compare.method <- match.arg(compare.method)
 
   # arm.var <- if (length(base.model[[3]]) > 1) {
@@ -1407,11 +1478,11 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
 
   # result in entire population
-result <- sstable.survcomp(model = base.model, data = data, time=time, reference.arm=reference.arm,
-                           medsum = FALSE, digits = digits,
-                           compare.method = compare.method, compare.args = compare.args,
-                           p.compare = p.compare,
-                           pdigits = 3, pcutoff = pcutoff, flextable = FALSE, ...)$table[,-1]
+  result <- sstable.survcomp(model = base.model, data = data, time=time, reference.arm=reference.arm,
+                             medsum = FALSE, digits = digits,
+                             compare.method = compare.method, compare.args = compare.args,
+                             p.compare = p.compare,
+                             pdigits = 3, pcutoff = pcutoff, flextable = FALSE, ...)$table[,-1]
   result <- cbind(c("Subgroup", "", "All patients"), result, c("Test for heterogeneity", "p-value", ""))
 
   # Preparation of models and data
@@ -1430,36 +1501,36 @@ result <- sstable.survcomp(model = base.model, data = data, time=time, reference
     ia.pval <-
       if (compare.method == 'cox')
         anova(survival::coxph(ia.model, data = data), survival::coxph(main.model, data = data), test = "Chisq")[2, "Pr(>|Chi|)"]
-      else{
-        # fitter <- eventglm::rmeanglm
-        ia.args <- compare.args
-        ia.args$add.prop.haz.test <- NULL
-        # ia.args$formula <- ia.model
-        ia.args$data <- data
-        type <- if (is.null(ia.args$type)) 'diff' else ia.args$type
-        ia.args$type <- NULL
-        ia.args$link <- switch(type, "diff" = 'identity', "ratio" = 'log', 'lost.ratio' = 'log')
-        ia.args$model.censoring <- if (is.null(ia.args$model.censoring)) 'stratified'
-        ia.args$formula.censoring <- if (is.null(ia.args$formula.censoring)) as.formula(paste0("~`", arm.var,'`'))
-        mf <- model.frame(update(base.model, new = as.formula(paste0(". ~`", arm.var, '`'))), data = data)
-        mf <- cbind(unclass(mf[,1]), mf[,2])
-        # Get max of stop time, is the minimum of last observed time between two arms.
-        # The stop time for right cens data is the first column ($time), for interval-cens data it is the second column ($stop)
-        # With laziness it is coded as mf[, ncol(mf)-2] (the last two columns are the event status from Surv object, and the arm)
-        # browser()
-        minimax.time <- min(by(mf[, ncol(mf)-2], mf[, ncol(mf)], max))
-        # tau for rmst is capped as minamax.time
-        if (is.null(ia.args$time)) ia.args$time <- minimax.time
-        else if (ia.args$time > minimax.time) {
-          ia.args$time <- minimax.time
-        }
-        # browser()
-        anova(
-          do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
-          do.call(eventglm::rmeanglm, append(ia.args, c(formula=main.model))),
-         test = "Chisq"
-        )[2, "Pr(>Chi)"]
+    else{
+      # fitter <- eventglm::rmeanglm
+      ia.args <- compare.args
+      ia.args$add.prop.haz.test <- NULL
+      # ia.args$formula <- ia.model
+      ia.args$data <- data
+      type <- if (is.null(ia.args$type)) 'diff' else ia.args$type
+      ia.args$type <- NULL
+      ia.args$link <- switch(type, "diff" = 'identity', "ratio" = 'log', 'lost.ratio' = 'log')
+      ia.args$model.censoring <- if (is.null(ia.args$model.censoring)) 'stratified'
+      ia.args$formula.censoring <- if (is.null(ia.args$formula.censoring)) as.formula(paste0("~`", arm.var,'`'))
+      mf <- model.frame(update(base.model, new = as.formula(paste0(". ~`", arm.var, '`'))), data = data)
+      mf <- cbind(unclass(mf[,1]), mf[,2])
+      # Get max of stop time, is the minimum of last observed time between two arms.
+      # The stop time for right cens data is the first column ($time), for interval-cens data it is the second column ($stop)
+      # With laziness it is coded as mf[, ncol(mf)-2] (the last two columns are the event status from Surv object, and the arm)
+      # browser()
+      minimax.time <- min(by(mf[, ncol(mf)-2], mf[, ncol(mf)], max))
+      # tau for rmst is capped as minamax.time
+      if (is.null(ia.args$time)) ia.args$time <- minimax.time
+      else if (ia.args$time > minimax.time) {
+        ia.args$time <- minimax.time
       }
+      # browser()
+      anova(
+        do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
+        do.call(eventglm::rmeanglm, append(ia.args, c(formula=main.model))),
+        test = "Chisq"
+      )[2, "Pr(>Chi)"]
+    }
 
     result[nrow(result), ncol(result)] <- format.pval(ia.pval, digits = pdigits, eps = pcutoff)
 
@@ -1572,6 +1643,6 @@ print.ss_tbl <- function(sstable, pretty=getOption('ss_pretty.print', TRUE)){
       print(huxtable::as_hux(sstable) |> huxtable::theme_article())
     },
     error = function(e) {print.default(sstable)}
-    )
+  )
   invisible(sstable)
 }
