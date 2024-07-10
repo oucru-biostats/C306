@@ -248,10 +248,26 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   ## get variable name
   varname <- if (ncol(xlabel) == 1) getlabel(xlabel[, 1]) else getlabel(xlabel)
 
+  
+  
+  # Loop through the variables in varlist
+  requireNamespace("Hmisc")
+  for (i in seq_along(varlist)) {
+    var_name <- varlist[i]
+    var_label <- label(data[[var_name]])
+    
+    # Check if the variable has a label, if so, collect the label, otherwise collect the variable name
+    if (!is.null(var_label) && var_label != "") {
+      label_list[i] <- var_label
+    } else {
+      label_list[i] <- var_name
+    }
+  }
+  
   ## get summary
   value <- do.call(rbind,
                    lapply(1:ncol(x), function(i) {
-                     sstable.baseline.each(varname = varname[i][[1]],
+                     sstable.baseline.each(varname = varname[i][[1]], label_list = label_list[i][[1]],
                                            x = x[, i], y = y, z = z, bycol = bycol,
                                            pooledGroup = pooledGroup, statistics = statistics,
                                            continuous = continuous[i], fullfreq = fullfreq, test = test,
@@ -380,7 +396,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   return(tab)
 }
 
-sstable.baseline.each <- function(varname, x, y, z, bycol = TRUE, pooledGroup = FALSE,
+sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, pooledGroup = FALSE,
                                   statistics = "med.IQR", continuous = NA, fullfreq = TRUE, test = FALSE,
                                   digits = 1, pdigits = pdigits, pcutoff = 0.0001, chisq.test = FALSE, correct = FALSE, workspace = 1000000,
                                   hybrid = FALSE, simulate.p.value = FALSE, B = 2000) {
@@ -550,7 +566,7 @@ sstable.baseline.each <- function(varname, x, y, z, bycol = TRUE, pooledGroup = 
     }
   }
 
-  out[1, 1] <- varname
+  out[1, 1] <- label_list
   return(out)
 }
 
