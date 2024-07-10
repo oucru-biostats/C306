@@ -105,7 +105,7 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
   fg1 <- do.call(survival::finegray, fgargs.each[[1]])
   fg2 <- do.call(survival::finegray, fgargs.each[[2]])
   # browser()
-  fml <- force(update(formula, Surv(fgstart,fgstop,fgstatus)~.))
+  fml <- force(update(formula, survival::Surv(fgstart,fgstop,fgstatus)~.))
 
   sf1 <- eval(substitute(survival::survfit(fml, data = fg1,  weights=fgwt), list(fml=fml)))
   sf2 <- eval(substitute(survival::survfit(fml, data = fg2,  weights=fgwt), list(fml=fml)))
@@ -130,7 +130,7 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
   # browser()
   facet.vars <- formula.tools::get.vars(facet.by)
   for (v in facet.vars) dt$strata <- gsub(
-    paste0(v,'=.*(,\\s)|$'), '', dt$strata, perl=T)
+    paste0('(,\\s)?',v,'=.*(,\\s|$)'), '', dt$strata, perl=T)
   plt <- if (all(dt$strata == ''))
    ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, group=Event))
   else
