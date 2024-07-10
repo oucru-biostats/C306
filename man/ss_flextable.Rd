@@ -3,12 +3,15 @@
 \name{ss_flextable}
 \alias{ss_flextable}
 \alias{ss_flextable.list}
+\alias{ss_flextable.ss_obj}
 \alias{ss_flextable.default}
 \title{Create summary table using flextable package.}
 \usage{
 ss_flextable(sstable, ...)
 
 \method{ss_flextable}{list}(sstable, add_footer = NULL, ...)
+
+\method{ss_flextable}{ss_obj}(sstable, add_footer = NULL, ...)
 
 \method{ss_flextable}{default}(sstable, footer = NULL, bg = "#F2EFEE", ...)
 }

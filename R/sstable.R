@@ -1080,11 +1080,15 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
 #' @param time [\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
 #' @param reference.arm [\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
-#' @param compare.method [\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time, "none" to not doing comparison
+#' @param compare.method [\code{cox}] a string, either "cox" for CoxPH model, "cuminc" for cumulative incidence, or "rmst" for restricted mean survival time.
+#' Note that if "cox" is specified and model is a mstate model, a Fine-Gray model is used.
+#' If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.
 #'
 #' @param compare.args: a list of additional args for compare.methods,
 #'
-#'  For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+#'  For compare.method = 'cox', it is
+#'  `add.prop.haz.test` [\code{TRUE}]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+#'  only when model is a mstate model, `cause`, default to whatever the first cause.
 #'
 #'  For compare.method = 'cuminc', args are fed to \code{\link[eventglm:cumincglm]{cumincglm}}
 #'  `type`: [\code{diff}] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
@@ -1121,7 +1125,10 @@ sstable.survcomp <- function(
   # Initialise the table --------------------------
   ## strip the tibble class which causes issue - trinhdhk
   data <- as.data.frame(data)
-  NAs <- model.frame(update(model, .~1), data=data) |> attr('na.action') |> unname()
+
+  mf <- model.frame(update(model, .~1), data=data)
+  NAs <- attr(mf, 'na.action') |> unname()
+
   if (length(NAs)){
     warning(sprintf('Missing values on observation(s) %s',
                     paste(NAs,collapse=', ')))
@@ -1139,6 +1146,27 @@ sstable.survcomp <- function(
   data[, arm.var] <- ._lv_rev_(data[, arm.var])
   arm.names <- levels(data[, arm.var])
   if (length(arm.names) > 2) stop('At the moment, only two-arm studies are supported. A lot of code has covered more than 2 arms but please think about what should be compared in those cases (chunk test or pairwise test for instance) before implementing / trinhdhk.')
+
+
+  # Prepare survfit
+  time2 <- if (time == Inf) .Machine$integer.max else time
+  fit.surv0 <- survival::survfit(update(model, new = as.formula(paste0(". ~ ", arm.var))), data = data)
+  # [Trinhdhk] Use integer.max instead of Inf b/c summary.survfit does not want Inf anymore. 05/24
+
+  # Check for competing risk aka mstate -trinhdhk
+  ms <- inherits(fit.surv0, 'survfitms')
+  if (ms) {
+    all_causes <- attr(mf[[1]], 'states')
+    if(length(unique(mf[[1]][,2]))<2)
+      stop('You wanted to use a mstate model. But only one event happened.')
+
+    if (is.null(compare.args$cause)) compare.args$cause <- all_causes[[1]]
+    if (!compare.args$cause %in% all_causes)
+      stop('Specified cause is not available in the list of causes.
+If you are running this in survcomp.subgroup, perhaps in one subgroup an event did not happen. I don\'t know how to fix this.')
+    this_cause <- which(all_causes == compare.args$cause)+1
+  }
+
 
   # Table header
   header1 <- c(paste(arm.names, " (n=", table(data[, arm.var]), ")", sep = ""), "Comparison")
@@ -1174,19 +1202,18 @@ sstable.survcomp <- function(
   )
   compare.name <- switch(compare.method,
                          cuminc='Generalized linear models for cumulative incidence',
-                         cox='Cox proportional hazards model',
+                         cox=if (ms) 'Fine-Gray model' else 'Cox proportional hazards model',
                          rmst='Restricted mean survival time model')
   footer <- c(
     paste0(compare.note, "; IQR = interquartile range."),
-    paste(compare.stat, if (p.compare) "and p value", "were based on", compare.name, '.'),
+    paste(compare.stat, if (p.compare) "and p value", "were based on",
+          paste0(compare.name, '.')),
     footer)
 
 
   # Descriptive analysis ---------------------------
   # add number of events and risks
-  time2 <- if (time == Inf) .Machine$integer.max else time
-  fit.surv0 <- survival::survfit(update(model, new = as.formula(paste0(". ~ ", arm.var))), data = data)
-  # [Trinhdhk] Use integer.max instead of Inf b/c summary.survfit does not want Inf anymore. 05/24
+
   fit.surv <- summary(fit.surv0, time = time2, extend = TRUE)
 
   # [Trinhdhk] This is crap as always returns at inf
@@ -1197,8 +1224,14 @@ sstable.survcomp <- function(
   # } else {
   #   tmp <- fit.surv$table
   # }
-  events.n <- paste(fit.surv$n.event, fit.surv$n, sep = "/")
-  if (add.risk) events.n <- paste(events.n, " (", formatC(100*(1 - fit.surv$surv), digits, format = "f"), ")", sep="")
+  # browser()
+  n.event <- if (ms) fit.surv$n.event[,this_cause] else fit.surv$n.event
+  events.n <- paste(n.event, fit.surv$n, sep = "/")
+  if (add.risk) {
+    cumhaz <- if (ms) fit.surv$cumhaz[, this_cause-1] else fit.surv$cumhaz
+    events.n <- paste(events.n,
+                      " (", formatC(100*(cumhaz), digits, format = "f"), ")", sep="")
+  }
   idx <- which(arm.names %in% unique(data[, arm.var]))
   result[3, 1:length(arm.names)] <- rep("-", length(arm.names))
   result[3, idx] <- events.n
@@ -1209,7 +1242,8 @@ sstable.survcomp <- function(
   # Re-base the arm factor
   if (reference.arm == 'B') data[, arm.var] <- ._lv_rev_(data[, arm.var])
   if (compare.method == "cox"){
-    if (!is.null(compare.args$add.prop.haz.test)) add.prop.haz.test <- compare.args$add.prop.haz.test
+    if (!is.null(compare.args$add.prop.haz.test))
+      add.prop.haz.test <- compare.args$add.prop.haz.test
     if (length(events.n) < length(arm.names)) {
       result[3, length(arm.names) + 1] <- "-"
       if (add.prop.haz.test){result <- cbind(result, c("Test for proportional hazards", "p-value", "-"))}
@@ -1217,30 +1251,40 @@ sstable.survcomp <- function(
       compare.args$add.prop.haz.test <- NULL
       compare.args$formula <- model
       compare.args$data <- data
-      # browser()
+
       # add HR, CI, p-value
-      # coxph <- survival::coxph
-      fit.coxph <- do.call(survival::coxph, compare.args) #survival::coxph(model, data)
+      fit.coxph <- if (!ms)
+        do.call(survival::coxph, compare.args) #survival::coxph(model, data)
+      else{
+        compare.args$etype <- compare.args$cause
+        compare.args$cause <- NULL
+        fml <- force(update(model, Surv(fgstart,fgstop,fgstatus)~.))
+        fg <- do.call(survival::finegray, compare.args)
+        eval(substitute(survival::coxph(fml, data = fg,  weights=fgwt), list(fml=fml)))
+      }
       est <- coef(fit.coxph)[1:(length(arm.names)-1)] #trinhdhk: if there were more covariables than just arm, subsetting this to only get the arm
       hr <- formatC(exp(est), digits, format = "f")
 
       result[3, length(arm.names) + 1] <-
         ifelse(is.na(est),"-",
-               {
-                 se <- sqrt(fit.coxph$var)[[1]] # trinhdhk: if there were more covariables than just arm, $var returns a var-cov mat, this first element is the var of arm (given arm is the first covariable)
-                 z <- abs(est/se)
-                 pval <- format.pval((1 - pnorm(z)) * 2, eps = pcutoff, digits = pdigits)
-                 ci <- sapply(est, \(.est) {
-                   paste(formatC(exp(c(.est - qnorm(0.975) * se, .est + qnorm(0.975) * se)), digits, format = "f"), collapse = ", ")
-                 })
-                 if (p.compare){
-                   hr.ci.p <- paste(hr, " (", ci, "); p=", pval, sep = "")
-                 } else {
-                   hr.ci.p <- paste(hr, " (", ci, ")", sep = "")
-                 }
 
-                 hr.ci.p
-               })
+        {
+          # browser()
+          se <- sqrt(fit.coxph$var[[1]]) # trinhdhk: if there were more covariables than just arm, $var returns a var-cov mat, this first element is the var of arm (given arm is the first covariable)
+          z <- abs(est/se)
+          pval <- format.pval((1 - pnorm(z)) * 2, eps = pcutoff, digits = pdigits)
+          ci <- sapply(est, \(.est) {
+            paste(formatC(exp(c(.est - qnorm(0.975) * se, .est + qnorm(0.975) * se)), digits, format = "f"), collapse = ", ")
+          })
+          if (p.compare){
+            hr.ci.p <- paste(hr, " (", ci, "); p=", pval, sep = "")
+          } else {
+            hr.ci.p <- paste(hr, " (", ci, ")", sep = "")
+          }
+
+          hr.ci.p
+        })
+
 
       # add test for proportional hazards
       if (add.prop.haz.test){
@@ -1248,7 +1292,16 @@ sstable.survcomp <- function(
           result <- cbind(result, c("Test for proportional hazards", "p-value", "-"))
         } else {
           attr(model, ".Environment") <- environment() # needed for cox.zph to work
-          p.prop.haz <- survival::cox.zph(survival::coxph(model, data))$table[1, "p"]
+          p.prop.haz <-
+            if(!ms){
+              cox <- do.call(survival::coxph, compare.args)
+              survival::cox.zph(cox)$table[1, "p"]
+            } else{
+              fml <- force(update(model, Surv(fgstart,fgstop,fgstatus)~.))
+              fg <- do.call(survival::finegray, compare.args)
+              cox <- eval(substitute(survival::coxph(fml, data = fg,  weights=fgwt), list(fml=fml)))
+              survival::cox.zph(cox)$table[1, "p"]
+            }
           if (is.na(p.prop.haz)) {
             p.prop.haz <- "-"
           } else {
@@ -1290,7 +1343,7 @@ sstable.survcomp <- function(
         compare.args$time <- minimax.time
       }
       # If type == lost.ratio then reverse the time
-      # ie. Surv(tau - ev_time, ev) ~ .
+      # i.e. Surv(tau - ev_time, ev) ~ .
       if (type == 'lost.ratio') {
         if (compare.method == 'cuminc') stop('type lost.ratio is meaningless in cuminc comparison.')
         model.lhs <- formula.tools::lhs(model)
@@ -1341,7 +1394,7 @@ sstable.survcomp <- function(
     ifelse(is.null(attr(data[, x], "label")), x, attr(data[, x], "label"))
   })
   # output
-  output <- if (medsum) {
+  output <- if (medsum & !ms) {
     result <- rbind(result, "", "", "", "")
     # add median (IQR) of time-to-event
     qfit <- as.matrix(do.call(cbind, quantile(fit.surv0, probs = c(0.5, 0.25, 0.75))))
@@ -1420,11 +1473,15 @@ sstable.survcomp <- function(
 #' @param time [\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
 #' @param reference.arm [\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
-#' @param compare.method [\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time
+#' @param compare.method [\code{cox}] a string, either "cox" for CoxPH model, "cuminc" for cumulative incidence, or "rmst" for restricted mean survival time.
+#' Note that if "cox" is specified and model is a mstate model, a Fine-Gray model is used.
+#' If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.
 #'
 #' @param compare.args: a list of additional args for compare.methods,
 #'
-#'  For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+#'  For compare.method = 'cox', it is
+#'  `add.prop.haz.test` [\code{TRUE}]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+#'  only when model is a mstate model, `cause`, default to whatever the first cause.
 #'
 #'  For compare.method = 'cuminc', args are fed to \code{\link[eventglm:cumincglm]{cumincglm}}
 #'  `type`: [\code{diff}] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,
@@ -1468,6 +1525,8 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
     data <- dplyr::slice(data, seq_len(nrow(data))[-NAs])
   }
   compare.method <- match.arg(compare.method)
+  fit.surv0 <- survfit(update(base.model, .~1), data=data)
+  ms <- inherits(fit.surv0, 'survfitms')
 
   # arm.var <- if (length(base.model[[3]]) > 1) {
   #   deparse(base.model[[3]][[2]])
@@ -1487,6 +1546,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
 
   # Preparation of models and data
   subgroup.char <- all.vars(subgroup.model)
+
   #browser()
   for (k in 1:length(subgroup.char)){
     main.model <- update(base.model, as.formula(paste(". ~ . +", subgroup.char[k], sep = "")))
@@ -1499,30 +1559,52 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
     result[nrow(result), 1] <- ifelse(is.null(attr(data[, subgroup.char[k]], "label")),
                                       subgroup.char[k], attr(data[, subgroup.char[k]], "label"))
     ia.pval <-
-      if (compare.method == 'cox')
-        anova(survival::coxph(ia.model, data = data), survival::coxph(main.model, data = data), test = "Chisq")[2, "Pr(>|Chi|)"]
-    else{
-      # fitter <- eventglm::rmeanglm
-      ia.args <- compare.args
-      ia.args$add.prop.haz.test <- NULL
-      # ia.args$formula <- ia.model
-      ia.args$data <- data
-      type <- if (is.null(ia.args$type)) 'diff' else ia.args$type
-      ia.args$type <- NULL
-      ia.args$link <- switch(type, "diff" = 'identity', "ratio" = 'log', 'lost.ratio' = 'log')
-      ia.args$model.censoring <- if (is.null(ia.args$model.censoring)) 'stratified'
-      ia.args$formula.censoring <- if (is.null(ia.args$formula.censoring)) as.formula(paste0("~`", arm.var,'`'))
-      mf <- model.frame(update(base.model, new = as.formula(paste0(". ~`", arm.var, '`'))), data = data)
-      mf <- cbind(unclass(mf[,1]), mf[,2])
-      # Get max of stop time, is the minimum of last observed time between two arms.
-      # The stop time for right cens data is the first column ($time), for interval-cens data it is the second column ($stop)
-      # With laziness it is coded as mf[, ncol(mf)-2] (the last two columns are the event status from Surv object, and the arm)
-      # browser()
-      minimax.time <- min(by(mf[, ncol(mf)-2], mf[, ncol(mf)], max))
-      # tau for rmst is capped as minamax.time
-      if (is.null(ia.args$time)) ia.args$time <- minimax.time
-      else if (ia.args$time > minimax.time) {
-        ia.args$time <- minimax.time
+      if (compare.method == 'cox'){
+        if (ms){
+          etype <- compare.args$cause
+          fg.ia <- survival::finegray(ia.model, data=data, etype=etype)
+          fg.main <- survival::finegray(main.model, data=data, etype=etype)
+
+          anova(
+            survival::coxph(update(ia.model, Surv(fgstart,fgstop,fgstatus)~.),
+                            data=fg.ia, weights=fgwt),
+            survival::coxph(update(main.model, Surv(fgstart,fgstop,fgstatus)~.),
+                            data=fg.main, weights=fgwt),
+            test = "Chisq")[2, "Pr(>|Chi|)"]
+        } else {
+          anova(survival::coxph(ia.model, data = data),
+                survival::coxph(main.model, data = data),
+                test = "Chisq")[2, "Pr(>|Chi|)"]
+        }
+      } else {
+        # fitter <- eventglm::rmeanglm
+        ia.args <- compare.args
+        ia.args$add.prop.haz.test <- NULL
+        # ia.args$formula <- ia.model
+        ia.args$data <- data
+        type <- if (is.null(ia.args$type)) 'diff' else ia.args$type
+        ia.args$type <- NULL
+        ia.args$link <- switch(type, "diff" = 'identity', "ratio" = 'log', 'lost.ratio' = 'log')
+        ia.args$model.censoring <- if (is.null(ia.args$model.censoring)) 'stratified'
+        ia.args$formula.censoring <- if (is.null(ia.args$formula.censoring)) as.formula(paste0("~`", arm.var,'`'))
+        mf <- model.frame(update(base.model, new = as.formula(paste0(". ~`", arm.var, '`'))), data = data)
+        mf <- cbind(unclass(mf[,1]), mf[,2])
+        # Get max of stop time, is the minimum of last observed time between two arms.
+        # The stop time for right cens data is the first column ($time), for interval-cens data it is the second column ($stop)
+        # With laziness it is coded as mf[, ncol(mf)-2] (the last two columns are the event status from Surv object, and the arm)
+        # browser()
+        minimax.time <- min(by(mf[, ncol(mf)-2], mf[, ncol(mf)], max))
+        # tau for rmst is capped as minamax.time
+        if (is.null(ia.args$time)) ia.args$time <- minimax.time
+        else if (ia.args$time > minimax.time) {
+          ia.args$time <- minimax.time
+        }
+        # browser()
+        anova(
+          do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
+          do.call(eventglm::rmeanglm, append(ia.args, c(formula=main.model))),
+         test = "Chisq"
+        )[2, "Pr(>Chi)"]
       }
       # browser()
       anova(
@@ -1572,11 +1654,11 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   )
   compare.name <- switch(compare.method,
                          cuminc='Generalized linear models for cumulative incidence',
-                         cox='Cox proportional hazards model',
+                         cox=if (ms) 'Fine-Gray model' else 'Cox proportional hazards model',
                          rmst='Restricted mean survival time model')
   footer <- c(
     compare.note,
-    paste(compare.stat, "and p value were based on", compare.name, '.'),
+    paste(compare.stat, "and p value were based on", paste0(compare.name, '.')),
     "Test for heterogeneity is an interaction test between treatment effect and each subgroup in the survival model not including other variables.",
     footer)
 
@@ -1646,3 +1728,4 @@ print.ss_tbl <- function(sstable, pretty=getOption('ss_pretty.print', TRUE)){
   )
   invisible(sstable)
 }
+

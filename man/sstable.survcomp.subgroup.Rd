@@ -34,7 +34,9 @@ sstable.survcomp.subgroup(
 
 \item{reference.arm}{[\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm}
 
-\item{compare.method}{[\code{cox}] a string, either "cox" for coxPH model, "cuminct" for cumulative incidence, or "rmst" for restricted mean survival time}
+\item{compare.method}{[\code{cox}] a string, either "cox" for CoxPH model, "cuminc" for cumulative incidence, or "rmst" for restricted mean survival time.
+Note that if "cox" is specified and model is a mstate model, a Fine-Gray model is used.
+If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.}
 
 \item{p.compare}{[\code{TRUE}] a logical value, specifying whether we should report p-value for the main comparison}
 
@@ -56,7 +58,9 @@ sstable.survcomp.subgroup(
 
 \item{compare.args:}{a list of additional args for compare.methods,
 
- For compare.method = 'cox', it is add.prop.haz.test [TRUE]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+ For compare.method = 'cox', it is
+ `add.prop.haz.test` [\code{TRUE}]: a logical value specifies whether a test for proportional hazards should be added,, additional args are fed directly to `survival::coxph`.
+ only when model is a mstate model, `cause`, default to whatever the first cause.
 
  For compare.method = 'cuminc', args are fed to \code{\link[eventglm:cumincglm]{cumincglm}}
  `type`: [\code{diff}] a string, "diff" for difference in cumulative incidence, "ratio' for ratio of cumulative incidence,

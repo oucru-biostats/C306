@@ -46,7 +46,7 @@ supporting function to convert them to flextable or huxtable.
   huxtable to follow a sstable-esque theme
 - `as_sstable` converting objects to sstable
 
-## Plotting functions for Aalen-Johansen curves
+## Plotting functions
 
 - `gg_boxcox` same with `MASS::boxcox` but in ggplot
 - `ggsurvfit2` same as `ggsurvfit::ggsurvfit` but with strata separated.
