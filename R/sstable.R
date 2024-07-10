@@ -252,9 +252,13 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   
   # Loop through the variables in varlist
   requireNamespace("Hmisc")
+  # Initialize an empty vector to store labels or variable names
+  label_list <- vector("character", length(varlist))
+  
+  # Loop through the variables in varlist
   for (i in seq_along(varlist)) {
     var_name <- varlist[i]
-    var_label <- label(data[[var_name]])
+    var_label <- Hmisc::label(data[[var_name]])
     
     # Check if the variable has a label, if so, collect the label, otherwise collect the variable name
     if (!is.null(var_label) && var_label != "") {
