@@ -1608,6 +1608,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
         ia.args$add.prop.haz.test <- NULL
         # ia.args$formula <- ia.model
         ia.args$data <- data
+
         type <- if (is.null(ia.args$type)) 'diff' else ia.args$type
         ia.args$type <- NULL
         ia.args$link <- switch(type, "diff" = 'identity', "ratio" = 'log', 'lost.ratio' = 'log')
@@ -1622,11 +1623,23 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
         # With laziness it is coded as mf[, ncol(mf)-2] (the last two columns are the event status from Surv object, and the arm)
         # browser()
         minimax.time <- min(by(mf[, ncol(mf)-2], mf[, ncol(mf)], max))
+
         # tau for rmst is capped as minamax.time
         if (is.null(ia.args$time)) ia.args$time <- minimax.time
         else if (ia.args$time > minimax.time) {
           ia.args$time <- minimax.time
         }
+
+        # Remove missing value from predictor bc this causes problem in censoring model
+        NAs <- model.frame(main.model, data=data) |> attr('na.action') |> unname()
+        if (length(NAs)){
+          warning(sprintf('Missing %s on observation(s) %s',
+                          subgroup.char[k],
+                          paste(NAs,collapse=', ')))
+          # data <- data[seq_len(nrow(data))[-NAs],]
+          ia.args$data <- dplyr::slice(data, seq_len(nrow(data))[-NAs])
+        }
+
         # browsere)
         anova(
           do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
