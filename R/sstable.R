@@ -1401,11 +1401,13 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
                  ci <- apply(cf, 1,
                              \(.cf) paste(formatC(sort(invlink(.cf)), digits, format = "f"), collapse = ", ")
                  )
-                 if (p.compare){
+                 if (is.na(p.val)) diff.ci.p <- paste(diff, '(-)')
+                 else if (p.compare){
                    diff.ci.p <- paste(diff, " (", ci, "); p=", pval, sep = "")
                  } else {
                    diff.ci.p <- paste(diff, " (", ci, ")", sep = "")
                  }
+                 diff.ci.p
                })
     }
 
