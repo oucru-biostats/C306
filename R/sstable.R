@@ -190,14 +190,14 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   ## determine type of x (argument: cont and cate)
   varlist <- getvar(formula) #hungtt
   varlist <- varlist[-length(varlist)] #remove the y name
-  
+
   # Convert varlist, cont, and cate to lowercase for case-insensitive comparison
   varlist_lower <- tolower(varlist)
   cont_lower <- tolower(cont)
   cate_lower <- tolower(cate)
-  
+
   continuous <- ifelse(varlist_lower %in% cont_lower, TRUE, ifelse(varlist_lower %in% cate_lower, FALSE, NA)) #assign var type
-  
+
   continuous <- sapply(1:ncol(x), function(i) {
     out <- ifelse(is.na(continuous[i]),
                   ifelse(any(c("factor", "character", "logical") %in% class(x[, i])) |
@@ -205,19 +205,19 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
                   continuous[i])
     return(out)
   })
-  
-  
+
+
   for (i in (1:ncol(x))) {
     if (continuous[i] == FALSE & !is.factor(x[, i])) x[, i] <- factor(x[, i], levels = sort(unique(na.omit(x[, i]))))
   }
-  
+
   ## if z exists, x must be categorical
   if (!is.null(z) & any(continuous == TRUE)) stop("Row-wise variable must be categorical when third dimension variable exists !!!")
-  
+
   ## if use by-row layout, x must be categorical
   #browser()
   if (bycol == FALSE & any(sapply(1:ncol(x), function(i) is.factor(x[,i])) == FALSE)) stop("Row-wise variable must be categorical in by-row layout !!!")
-  
+
   ## determine type of z
   if (!is.null(z)) {
     zdiscrete <- any(c("factor", "character", "logical") %in% class(unclass(z))) |
@@ -225,7 +225,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
     # if (zcontinuous == FALSE & !is.factor(z)) z <- factor(z, levels = unique(na.omit(z)))
     if (zdiscrete) z <- factor(z, levels = unique(na.omit(z)))
   }
-  
+
   # browser()
   ## digits
   if (length(digits) == 1) {
@@ -248,18 +248,18 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   ## get variable name
   varname <- if (ncol(xlabel) == 1) getlabel(xlabel[, 1]) else getlabel(xlabel)
 
-  
-  
+
+
   # Loop through the variables in varlist
   requireNamespace("Hmisc")
   # Initialize an empty vector to store labels or variable names
   label_list <- vector("character", length(varlist))
-  
+
   # Loop through the variables in varlist
   for (i in seq_along(varlist)) {
     var_name <- varlist[i]
     var_label <- Hmisc::label(data[[var_name]])
-    
+
     # Check if the variable has a label, if so, collect the label, otherwise collect the variable name
     if (!is.null(var_label) && var_label != "") {
       label_list[i] <- var_label
@@ -267,7 +267,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
       label_list[i] <- var_name
     }
   }
-  
+
   ## get summary
   value <- do.call(rbind,
                    lapply(1:ncol(x), function(i) {
@@ -1578,8 +1578,9 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
     main.model <- update(base.model, as.formula(paste(". ~ . +", subgroup.char[k], sep = "")))
     ia.model <- update(base.model, as.formula(paste(". ~ . +`", arm.var,  "`*", subgroup.char[k], sep = "")))
     data$.subgroup.var <- data[, subgroup.char[k]]
+    if (!inherits(data[, subgroup.char[k]], 'factor'))  data[, subgroup.char[k]] <- factor(data[, subgroup.char[k]])
     factor.levels <- levels(data[, subgroup.char[k]])
-
+    compare.args.subgroup <- compare.args
     # Add interaction test for heterogeneity
     result <- rbind(result, "")
     result[nrow(result), 1] <- ifelse(is.null(attr(data[, subgroup.char[k]], "label")),
@@ -1603,7 +1604,6 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
                 test = "Chisq")[2, "Pr(>|Chi|)"]
         }
       } else {
-        # fitter <- eventglm::rmeanglm
         ia.args <- compare.args
         ia.args$add.prop.haz.test <- NULL
         # ia.args$formula <- ia.model
@@ -1612,7 +1612,9 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
         ia.args$type <- NULL
         ia.args$link <- switch(type, "diff" = 'identity', "ratio" = 'log', 'lost.ratio' = 'log')
         ia.args$model.censoring <- if (is.null(ia.args$model.censoring)) 'stratified'
-        ia.args$formula.censoring <- if (is.null(ia.args$formula.censoring)) as.formula(paste0("~`", arm.var,'`'))
+        ia.args$formula.censoring <-
+          if (is.null(ia.args$formula.censoring)) update(main.model, NULL ~.) else
+            update(ia.args$formula.censoring, as.formula(paste("NULL ~ . +", subgroup.char[k], sep = "")))
         mf <- model.frame(update(base.model, new = as.formula(paste0(". ~`", arm.var, '`'))), data = data)
         mf <- cbind(unclass(mf[,1]), mf[,2])
         # Get max of stop time, is the minimum of last observed time between two arms.
@@ -1625,7 +1627,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
         else if (ia.args$time > minimax.time) {
           ia.args$time <- minimax.time
         }
-        # browser()
+        # browsere)
         anova(
           do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
           do.call(eventglm::rmeanglm, append(ia.args, c(formula=main.model))),
@@ -1641,6 +1643,13 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
       result <- rbind(result, "")
       result[nrow(result), 1] <- paste("-", factor.levels[j])
       d.subgroup <- subset(data, .subgroup.var == factor.levels[j])
+      # if (compare.method=='rmst'){
+      #   compare.args$model.censoring <- if (is.null(compare.args$model.censoring)) 'stratified'
+      #   compare.args$formula.censoring <-
+      #     if (is.null(compare.args$formula.censoring)) update(main.model, NULL ~.) else
+      #       update(compare.args$formula.censoring, as.formula(paste("NULL ~ . +", subgroup.char[k], sep = "")))
+      # }
+      # browser()
       result[nrow(result), 2:(ncol(result) - 1)] <- sstable.survcomp(model = base.model, data = d.subgroup, time=time,
                                                                      compare.method = compare.method, compare.args = compare.args,
                                                                      p.compare = p.compare,
