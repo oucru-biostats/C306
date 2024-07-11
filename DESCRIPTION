@@ -31,6 +31,7 @@ Depends:
     dplyr,
     R (>= 2.10)
 Imports:
+    Hmisc,
     stringi,
     lubridate,
     car,
