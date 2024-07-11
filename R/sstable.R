@@ -1401,7 +1401,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
                  ci <- apply(cf, 1,
                              \(.cf) paste(formatC(sort(invlink(.cf)), digits, format = "f"), collapse = ", ")
                  )
-                 if (is.na(pval)) diff.ci.p <- paste(diff, '(-)')
+                 if (is.na(p)) diff.ci.p <- paste(diff, '(-)')
                  else if (p.compare){
                    diff.ci.p <- paste(diff, " (", ci, "); p=", pval, sep = "")
                  } else {
