@@ -1904,6 +1904,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
 #' @description A function to summarize results for a survival model by treatment arm (variable "arm") and subgroup.
 #'
 #' @param base.model a formula from which sub-group specific estimates are extracted (!! arm must be the first covariate in the model).
+#' @param overall.model an optional one-sided formula for additional terms for overall population only
 #' @param subgroup.model a formula of the form "~subgrouping.variable1+subgrouping.variable2" (!! subgrouping.variable must be factors and there should be nothing on the left-hand side of the formula).
 #' @param data a data frame to fit the survival model.
 #' @param add.risk [\code{TRUE}] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.
@@ -1934,20 +1935,21 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
 #' @param footer a [\code{NULL}] vector of strings to be used as footnote of table.
 #' @param flextable [\code{TRUE}] a logical value specifies whether output will be a flextable-type table.
 #' @param bg [\code{#F2EFEE}] a character specifies color of the odd rows in the body of flextable-type table.
+#' @param overall [\code{TRUE}] where to print overall model
 #' @param ... arguments that are passed to sstable.survcomp
 #'
 #' @return a flextable-type table or a list with values/headers/footers
 #'
-#' @author This function was originally written by Marcel Wolbers. Lam Phung Khanh did some modification.
+#' @author This function was originally written by Marcel Wolbers. Trinh Dong and Lam Phung Khanh did some modification.
 #' @import survival
 #' @export
-sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
+sstable.survcomp.subgroup <- function(base.model, subgroup.model, overall.model, data,
                                       time = Inf,
                                       reference.arm = c('B', 'A'),
                                       compare.method = c('cox', 'rmst', 'cuminc'),
                                       compare.args = list(),
                                       p.compare = TRUE,
-                                      digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE", ...){
+                                      digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE", overall = TRUE,...){
 
 
   requireNamespace("survival")
@@ -1974,7 +1976,14 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
 
   # result in entire population
-  result <- sstable.survcomp(model = base.model, data = data, time=time, reference.arm=reference.arm,
+  if (!missing(overall.model)){
+    added.terms <- terms(overall.model) |> attr('term.labels')
+    overall.model <- update(base.model,
+                            as.formula(paste('. ~ . +',
+                                             paste(added.terms,
+                                             collapse='+'))))
+  } else overall.model <- base.model
+  result <- sstable.survcomp(model = overall.model, data = data, time=time, reference.arm=reference.arm,
                              medsum = FALSE, digits = digits,
                              compare.method = compare.method, compare.args = compare.args,
                              p.compare = p.compare,
@@ -2052,15 +2061,28 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
         }
 
         # browsere)
-        anova(
-          do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
-          do.call(eventglm::rmeanglm, append(ia.args, c(formula=main.model))),
-         test = "Chisq"
-        )[2, "Pr(>Chi)"]
+        # Perform multivariate wald test for interaction term
+        tryCatch({
+          fitter <- switch(compare.method,
+                           'rmst' = eventglm::rmeanglm,
+                           'cuminc' = eventglm::cumincglm)
+          ia.fit <-
+            do.call(fitter, append(ia.args, c(formula=ia.model)))
+          main.terms <- colnames(model.matrix(main.model, data=ia.args$data))
+          ia.terms <- coef(ia.fit)
+          test.terms <- which(!names(ia.terms) %in% main.terms)
+          test <- aod::wald.test(vcov(ia.fit), b=ia.terms, Terms=test.terms)
+          test$result$chi2['P']
+        },
+        error=\(e) NA
+        )
+
       }
       # browser()
 
-    result[nrow(result), ncol(result)] <- format.pval(ia.pval, digits = pdigits, eps = pcutoff)
+    result[nrow(result), ncol(result)] <-
+      if (is.na(ia.pval)) '-' else
+        format.pval(ia.pval, digits = pdigits, eps = pcutoff)
 
     # Add results for each subgroup level
     for (j in 1:length(factor.levels)){
@@ -2112,10 +2134,14 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   footer <- c(
     compare.note,
     paste(compare.stat, "and p value were based on", paste0(compare.name, '.')),
-    "Test for heterogeneity is an interaction test between treatment effect and each subgroup in the survival model not including other variables.",
+    sprintf(
+      "Test for heterogeneity is an %s test for interaction between treatment effect and each subgroup in the survival model not including other variables.",
+      if (compare.method == 'cox') 'Likelihood-ratio' else 'multivariate Wald'
+    ),
     footer)
 
   # flextable
+  if (!overall) result <- result[-3,]
   if (flextable) {
     requireNamespace("flextable")
     requireNamespace("officer")
