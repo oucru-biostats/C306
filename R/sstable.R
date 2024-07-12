@@ -1087,9 +1087,10 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   }
   # Check if any aetype.var is NA and replace with "NA"
   for (var in aetype.var) {
+		ae_data[[var]] = as.character(ae_data[[var]])
     if (any(is.na(ae_data[[var]]))) {
-      if (is.factor(ae_data[[var]]))
-          levels(ae_data[[var]]) <- c(levels(ae_data[[var]]), na.text )
+      #if (is.factor(ae_data[[var]]))
+          #levels(ae_data[[var]]) <- c(levels(ae_data[[var]]), na.text )
 
       ae_data[[var]][is.na(ae_data[[var]])] <- na.text
     }
