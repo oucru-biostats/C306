@@ -1106,7 +1106,8 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   # Example usage with ae_any data frame mutation
   ae_any <- ae_data  # Assuming ae_data is your original data frame
 
-  mutated_data <- replace_with_var_names(ae_any, aetype.var, aetype.var)
+  mutated_data <- if(print.aetype.header)
+    replace_with_var_names(ae_any, aetype.var, aetype.var) else ae_any
   ae_any[, aetype.var] <- "Any selected adverse event"
   # Combine original and mutated data (assuming ae_data and ae_any exist)
   ae <- rbind(ae_data, ae_any, mutated_data)
@@ -1133,7 +1134,9 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   aetype_lev.raw <- unique(as.character(ae_data[[aetype.var]]))
 
   # Check if aetype.var has a label attribute
-  if (!is.null(attr(ae_data[[aetype.var]], "label"))) {
+  if (!is.null(names(aetype_var))){
+    aetype.var.label <- names(aetype_var)
+  } else if (!is.null(attr(ae_data[[aetype.var]], "label"))) {
     aetype.var.label <- attr(ae_data[[aetype.var]], "label")
   } else {
     aetype.var.label <- aetype.var
@@ -1143,7 +1146,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   # Construct aetype_lev with labels where available
   aetype_lev <- c("Any selected adverse event",
                   if (!is.null(grade.var)) paste("-", grade2),
-                  aetype.var.label,
+                  if (print.aetype.header) aetype.var.label,
                   aetype_lev.raw)
 
   ## add randomized arm to AE
