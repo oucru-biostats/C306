@@ -1140,10 +1140,12 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   ae_any <- ae_data  # Assuming ae_data is your original data frame
 
   mutated_data <- if(print.aetype.header)
-    replace_with_var_names(ae_any, aetype.var, aetype.var) else ae_any
+    replace_with_var_names(ae_any, aetype.var, aetype.var) else NULL
   ae_any[, aetype.var] <- "Any selected adverse event"
   # Combine original and mutated data (assuming ae_data and ae_any exist)
-  ae <- rbind(ae_data, ae_any, mutated_data)
+  ae <- if(print.aetype.header) 
+		rbind(ae_data, ae_any, mutated_data) else 
+		rbind(ae_data, ae_any)
 
   # Extract grades of ae (assuming grade.var exists)
   if (!is.null(grade.var)) {
