@@ -1947,8 +1947,8 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, overall.model,
     added.terms <- terms(overall.model) |> attr('term.labels')
     overall.model <- update(base.model,
                             as.formula(paste('. ~ . +',
-                                             added.terms,
-                                             collapse='+')))
+                                             paste(added.terms,
+                                             collapse='+'))))
   } else overall.model <- base.model
   result <- sstable.survcomp(model = overall.model, data = data, time=time, reference.arm=reference.arm,
                              medsum = FALSE, digits = digits,
