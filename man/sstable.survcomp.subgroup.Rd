@@ -54,6 +54,8 @@ If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.}
 
 \item{...}{arguments that are passed to sstable.survcomp}
 
+\item{overall.model}{an optional one-sided formula for additional terms for overall population only}
+
 \item{add.risk}{[\code{TRUE}] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.}
 
 \item{compare.args:}{a list of additional args for compare.methods,
@@ -69,6 +71,8 @@ If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.}
  For compare.method = 'rmst', args are fed to \code{\link[eventglm:rmeanglm]{rmeanglm}} ,
  `type`: [\code{diff}] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.diff" for difference in restricted mean time lost (RMTL, = -diff), and "lost.ratio" for ratio of RMTL
  other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:rmeanglm]{rmeanglm}} for more details.}
+
+\item{overall}{[\code{TRUE}] where to print overall model}
 }
 \value{
 a flextable-type table or a list with values/headers/footers
@@ -77,5 +81,5 @@ a flextable-type table or a list with values/headers/footers
 A function to summarize results for a survival model by treatment arm (variable "arm") and subgroup.
 }
 \author{
-This function was originally written by Marcel Wolbers. Lam Phung Khanh did some modification.
+This function was originally written by Marcel Wolbers. Trinh Dong and Lam Phung Khanh did some modification.
 }
