@@ -88,31 +88,40 @@ sstable.formula <- function(formula) {
 #'
 #' @return a string displays formatted summary statistics.
 #' @export
-contSummary <- function(x, statistics = c("med.IQR", "med.90", "med.range", "mean.sd"), digits = 1, n = TRUE){
-  if (length(statistics) > 1) statistics <- "med.IQR"
-  loc <- formatC(ifelse(statistics == "mean.sd",
-                        mean(x, na.rm = TRUE),
-                        median(x, na.rm = TRUE)), digits = digits, format = "f")
-  dis <- switch(statistics,
-                mean.sd   = formatC(sd(x, na.rm = TRUE), digits = digits, format = "f"),
-                med.IQR   = paste(
-                  formatC(quantile(x, probs = c(0.25, 0.75), na.rm = TRUE), digits = digits, format = "f"),
-                  collapse = ", "),
-                med.90    = paste(
-                  formatC(quantile(x, probs = c(0.05, 0.95), na.rm = TRUE), digits = digits, format = "f"),
-                  collapse = ", "),
-                med.range = paste(
-                  formatC(quantile(x, probs = c(0.00, 1.00), na.rm = TRUE), digits = digits, format = "f"),
-                  collapse = ", "))
-  if (n == TRUE){
-    output <- paste(loc, " (", dis, ") - ", length(na.omit(x)), sep = "")
-    names(output) <- paste(statistics, "- n")
-  } else {
-    output <- paste(loc, " (", dis, ")", sep = "")
-    names(output) <- statistics
+
+contSummary <- function(x, statistics = NULL, digits = 1, n = TRUE) {
+  if (is.null(statistics)) {
+    stop("Please provide a string for 'statistics'")
   }
-  return(output)
+  
+  # Convert the 'statistics' string to lowercase
+  statistics <- tolower(statistics)
+  
+  # Define a list of supported statistics and their corresponding functions
+  stat_list <- list(
+    mean = function(x) round(mean(x, na.rm = TRUE), digits),
+    median = function(x) round(median(x, na.rm = TRUE), digits),
+    sd = function(x) round(sd(x, na.rm = TRUE), digits),
+    q1 = function(x) round(quantile(x, 0.25, na.rm = TRUE), digits),
+    q3 = function(x) round(quantile(x, 0.75, na.rm = TRUE), digits),
+    min = function(x) round(min(x, na.rm = TRUE), digits),
+    max = function(x) round(max(x, na.rm = TRUE), digits)
+  )
+  
+  # Replace statistical names with their calculated values
+  for (stat_name in names(stat_list)) {
+    stat_value <- stat_list[[stat_name]](x)
+    statistics <- gsub(stat_name, stat_value, statistics)
+  }
+  
+  # Include the count if requested
+  if (n) {
+    statistics <- paste0(statistics)
+  }
+  
+  return(statistics)
 }
+
 
 # create baseline table ---------------------------------------------------
 
@@ -145,15 +154,16 @@ contSummary <- function(x, statistics = c("med.IQR", "med.90", "med.range", "mea
 #' @param footer a vector of strings to be used as footnote of table.
 #' @param flextable a logical value specifies whether output will be a flextable-type table.
 #' @param bg a character specifies color of the odd rows in the body of flextable-type table.
+#' @param df a logical values specifies whether output will be a draw dataframe.
 #'
 #' @return a flextable-type table or a list with values/headers/footers
 #' @export
 sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, keepEmptyGroup = FALSE,
-                             statistics = "med.IQR", cont = NULL, cate = NULL, fullfreq = TRUE, digits = 1,
+                             statistics = "mean, median (Q1-Q3)", cont = NULL, cate = NULL, fullfreq = TRUE, digits = 1,
                              test = FALSE, pdigits = 3, pcutoff = 0.0001,
                              chisq.test = FALSE, correct = FALSE, simulate.p.value = FALSE, B = 2000,
                              workspace = 1000000, hybrid = FALSE,
-                             footer = NULL, flextable = FALSE, bg = "#F2EFEE") {
+                             footer = NULL, flextable = FALSE, bg = "#F2EFEE", df = FALSE) {
 
   ## get information from formula
   info <- sstable.formula(formula)
@@ -247,20 +257,20 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
 
   ## get variable name
   varname <- if (ncol(xlabel) == 1) getlabel(xlabel[, 1]) else getlabel(xlabel)
-
-
-
-  # Loop through the variables in varlist
-  requireNamespace("Hmisc")
+  
+  
   # Initialize an empty vector to store labels or variable names
-  label_list <- vector("character", length(varlist))
-
+  label_list <- character(length(varlist))
+  
   # Loop through the variables in varlist
   for (i in seq_along(varlist)) {
     var_name <- varlist[i]
-    var_label <- Hmisc::label(data[[var_name]])
+    
+    # Retrieve the variable label if available
+    var_label <- attr(data[[var_name]], "label")
+    
+    # Check if the variable has a label or use the variable name
 
-    # Check if the variable has a label, if so, collect the label, otherwise collect the variable name
     if (!is.null(var_label) && var_label != "") {
       label_list[i] <- var_label
     } else {
@@ -285,10 +295,263 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   value_dim <- dim(value)
   value <- apply(value, 2, function(x) ifelse(is.na(x) | x %in% c("NA (NA, NA)", "0/0 (NaN%)"), "-", x))
   dim(value) <- value_dim
+  value <- as.data.frame(value)
+  # ## output - old code, if want to reverse to old code, uncomment this code, remove df argument in main function 
+  #and delete the corresponding code below
+  # ### header
+  # 
+  # gr.lev <- levels(y)
+  # header1 <- c("", c(rbind(rep("", length(gr.lev)), paste(gr.lev, " (N=", table(y), ")", sep = ""))))
+  # header2 <- c("Characteristic", rep(c("n", "Summary statistic"), length(gr.lev)))
+  # if (test) {
+  #   header1 <- c(header1, "p value")
+  #   header2 <- c(header2, "")
+  # }
+  # 
+  # ### footer
+  # footer2 <- footer1 <- footer1.after <- footer.con <- footer.cat <- NULL
+  # 
+  # #### summary statistics
+  # if ((is.null(z) & any(continuous)) | (!is.null(z) & !is.factor(z))) {
+  #   footer.con <- paste0(
+  #     paste(statistics, collapse = ", "), 
+  #     " for continuous variable(s)."
+  #   )
+  # }
+  # 
+  # if ((is.null(z) & any(continuous == FALSE)) | (!is.null(z) & is.factor(z))) {
+  #   footer.cat <- "absolute count (%) for categorical variable(s)"
+  # }
+  # 
+  # footer1.after <- if (is.null(footer.con)) {
+  #   paste0(footer.cat, ".")
+  # } else {
+  #   if (is.null(footer.cat)) {
+  #     footer.con
+  #   } else {
+  #     paste0(footer.cat, " and ", footer.con)
+  #   }
+  # }
+  # footer1 <- paste("Summary statistic is", footer1.after)
+  # 
+  # #### test
+  # if (test) {
+  #   footer2.cat <- paste(
+  #     ifelse(chisq.test == FALSE, "Fisher's exact test", "Chi-squared test"), 
+  #     "for categorical variable(s)"
+  #   )
+  #   footer2.con <- "Kruskal-Wallis/Mann-Whitney U-test for continuous variable(s)."
+  #   footer2.after <- if (is.null(footer.con)) {
+  #     paste0(footer2.cat, ".")
+  #   } else {
+  #     if (is.null(footer.cat)) {
+  #       footer2.con
+  #     } else {
+  #       paste0(footer2.cat, " and ", footer2.con)
+  #     }
+  #   }
+  #   footer2 <- paste("p-values were based on", footer2.after)
+  # }
+  # 
+  # footer <- c(
+  #   "N is number of all patients, n is number of patients with non-missing value.",
+  #   footer1,
+  #   if (any(value == "-")) {"- : value cannot be estimated."} else NULL,
+  #   footer2,
+  #   footer
+  # )
+  # 
+  # 
+  # ### flextable
+  # if (flextable) {
+  #   requireNamespace("flextable")
+  #   requireNamespace("officer")
+  # 
+  #   ## main table
+  #   tab <- flextable::flextable(as.data.frame(value))
+  # 
+  #   ## header
+  #   header1[1] <- header2[1]
+  #   header1[seq(from = 2, to = 2 * length(gr.lev), by = 2)] <- header1[seq(from = 2, to = 2 * length(gr.lev), by = 2) + 1]
+  #   if (test) header2[length(header1)] <- header1[length(header1)]
+  #   assign("tab",
+  #          eval(parse(text = paste0("flextable::set_header_labels(tab,",
+  #                                   paste(paste0("V", 1:length(header1)), paste0("'", header1, "'"), sep = "=", collapse = ","),
+  #                                   ")"))))
+  #   assign("tab",
+  #          eval(parse(text = paste0("flextable::add_header(tab,",
+  #                                   paste(paste0("V", 1:length(header1)), paste0("'", header2, "'"), sep = "=", collapse = ","),
+  #                                   ", top = FALSE)"))))
+  # 
+  #   tab <- flextable::merge_h(tab, part = "header")
+  #   tab <- flextable::merge_v(tab, part = "header")
+  # 
+  #   ## footer
+  #   for (k in (1:length(footer))) {
+  #     tab <- flextable::add_footer(tab, V1 = footer[k], top = FALSE)
+  #     tab <- flextable::merge_at(tab, i = k, j = 1:length(header1), part = "footer")
+  #   }
+  # 
+  #   ## format
+  #   ### width
+  #   tab <- flextable::autofit(tab)
+  #   ### alignment
+  #   tab <- flextable::align(tab, j = 1, align = "left", part = "all")
+  #   ### faces of header
+  #   tab <- flextable::bold(tab, part = "header")
+  #   ### background
+  #   tab <- flextable::bg(tab, i = seq(from = 1, to = nrow(value), by = 2), j = 1:length(header1), bg = bg, part = "body")
+  #   ### border
+  #   tabbd <- officer::fp_border(color="black", width = 1.5)
+  #   tab <- flextable::border_remove(tab)
+  #   tab <- flextable::hline(tab, border = tabbd, part = "header")
+  #   tab <- flextable::hline_top(tab, border = tabbd, part = "all")
+  #   tab <- flextable::hline_bottom(tab, border = tabbd, part = "body")
+  # 
+  # } else {
+  #   tab <- list(table = rbind(header1, header2, value),
+  #               footer = footer)
+  #   class(tab$table) <- c('baseline_tbl', 'ss_tbl', class(tab$table))
+  # }
+  # ## output
+  # if (!flextable) class(tab) <- c('ss_baseline','ss_obj')
 
+  
+  # add option to call dataframe before adding header, footer -hungtt
+if (df) { tab <- value} 
+else { tab <- sstable_baseline_final(value = value, formula = formula, data =data, bycol = bycol, pooledGroup = pooledGroup , keepEmptyGroup = keepEmptyGroup,
+                                     statistics = statistics, cont = cont, cate = cate, fullfreq = fullfreq, digits = digits,
+                                     test = test, pdigits = pdigits, pcutoff = pcutoff,
+                                     chisq.test = chisq.test, correct = correct, simulate.p.value = simulate.p.value, B = B,
+                                     workspace = workspace, hybrid = hybrid, footer = footer, flextable = flextable, bg = bg)
+}
+
+return (tab)
+}
+  
+  
+  
+  
+  # function to format data frame to baseline table -hungtt
+sstable_baseline_final <- function(value, formula, data, bycol = TRUE, pooledGroup = FALSE, keepEmptyGroup = FALSE,
+                                   statistics = "mean, median (Q1-Q3)", cont = NULL, cate = NULL, fullfreq = TRUE, digits = 1,
+                                   test = FALSE, pdigits = 3, pcutoff = 0.0001,
+                                   chisq.test = FALSE, correct = FALSE, simulate.p.value = FALSE, B = 2000,
+                                   workspace = 1000000, hybrid = FALSE, footer = NULL, flextable = FALSE, bg = "#F2EFEE") {
+  ## get information from formula
+  info <- sstable.formula(formula)
+  
+  ## strip the tibble class which causes issue - trinhdhk
+  data <- as.data.frame(data)
+  
+  ## get data
+  dat <- model.frame(info$formula0, data = data, na.action = NULL)
+  x <- xlabel <- dat[, info$index$x, drop = FALSE]
+  y <- if (info$index$y > 0) dat[, info$index$y] else NULL
+  z <- if (info$index$z > 0) dat[, info$index$z] else NULL
+  
+  ## y must be categorical variable
+  if (!is.null(y)) {
+    if (all(!c("character", "factor", "logical") %in% class(y)) |
+        (any(c("numeric", "integer") %in% class(y)) & length(unique(na.omit(y))) > 5)) {
+      stop("Column-wise variable must be categorical !!!")
+    }
+    if (is.factor(y)){
+      ### [trinhdhk] 2024-04: reverse level of y for better summary
+      y <- ._lv_rev_(y)
+      if (!keepEmptyGroup) y <- droplevels(y)
+      y <- addNA(y, ifany = TRUE)
+    } else {
+      y <- factor(as.character(y), levels = sort(unique(as.character(y), decreasing = TRUE), na.last = TRUE), exclude = NULL)
+    }
+  } else {
+    y <- factor(rep("Total", nrow(dat)))
+  }
+  
+  #browser()
+  
+  ## determine type of x (argument: cont and cate)
+  varlist <- getvar(formula) #hungtt
+  varlist <- varlist[-length(varlist)] #remove the y name
+  
+  # Convert varlist, cont, and cate to lowercase for case-insensitive comparison
+  varlist_lower <- tolower(varlist)
+  cont_lower <- tolower(cont)
+  cate_lower <- tolower(cate)
+  
+  continuous <- ifelse(varlist_lower %in% cont_lower, TRUE, ifelse(varlist_lower %in% cate_lower, FALSE, NA)) #assign var type
+  
+  continuous <- sapply(1:ncol(x), function(i) {
+    out <- ifelse(is.na(continuous[i]),
+                  ifelse(any(c("factor", "character", "logical") %in% class(x[, i])) |
+                           (any(c("numeric", "integer") %in% class(x[, i])) & length(unique(na.omit(x[, i]))) <= 5), FALSE, TRUE),
+                  continuous[i])
+    return(out)
+  })
+  
+  
+  for (i in (1:ncol(x))) {
+    if (continuous[i] == FALSE & !is.factor(x[, i])) x[, i] <- factor(x[, i], levels = sort(unique(na.omit(x[, i]))))
+  }
+  
+  ## if z exists, x must be categorical
+  if (!is.null(z) & any(continuous == TRUE)) stop("Row-wise variable must be categorical when third dimension variable exists !!!")
+  
+  ## if use by-row layout, x must be categorical
+  #browser()
+  if (bycol == FALSE & any(sapply(1:ncol(x), function(i) is.factor(x[,i])) == FALSE)) stop("Row-wise variable must be categorical in by-row layout !!!")
+  
+  ## determine type of z
+  if (!is.null(z)) {
+    zdiscrete <- any(c("factor", "character", "logical") %in% class(unclass(z))) |
+      (any(c("numeric", "integer") %in% class(unclass(z))) & length(unique(na.omit(z))) <= 5)
+    # if (zcontinuous == FALSE & !is.factor(z)) z <- factor(z, levels = unique(na.omit(z)))
+    if (zdiscrete) z <- factor(z, levels = unique(na.omit(z)))
+  }
+  
+  # browser()
+  ## digits
+  if (length(digits) == 1) {
+    digits <- rep(digits, ncol(x))
+  } else {
+    if (length(digits) != ncol(x)) stop("digits argument must have length 1 or similar length as number of row-wise variables !!!")
+  }
+  
+  ## if pooledGroup
+  if (pooledGroup) {
+    x <- rbind(x, x)
+    ypool <- ifelse("total" %in% tolower(levels(y)), "pooledGroup", "Total")
+    y <- factor(c(as.character(y), rep(ypool, nrow(dat))), levels = c(levels(y), ypool), exclude = NULL)
+    z <- if (!is.null(z)) factor(c(z, z), levels = unique(na.omit(z))) else NULL
+  }
+  # else{
+  #   z <- if (!is.null(z)) factor(z, levels = unique(na.omit(z))) else NULL
+  # }
+  
+  ## get variable name
+  varname <- if (ncol(xlabel) == 1) getlabel(xlabel[, 1]) else getlabel(xlabel)
+  
+  
+  
+  # Initialize an empty vector to store labels or variable names
+  label_list <- character(length(varlist))
+  
+  # Loop through the variables in varlist
+  for (i in seq_along(varlist)) {
+    var_name <- varlist[i]
+    
+    # Retrieve the variable label if available
+    var_label <- attr(data[[var_name]], "label")
+    
+    # Check if the variable has a label or use the variable name
+    if (!is.null(var_label) && var_label != "") {
+      label_list[i] <- var_label
+    } else {
+      label_list[i] <- var_name
+    }
+  }
   ## output
   ### header
-
   gr.lev <- levels(y)
   header1 <- c("", c(rbind(rep("", length(gr.lev)), paste(gr.lev, " (N=", table(y), ")", sep = ""))))
   header2 <- c("Characteristic", rep(c("n", "Summary statistic"), length(gr.lev)))
@@ -296,21 +559,22 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
     header1 <- c(header1, "p value")
     header2 <- c(header2, "")
   }
-
+  
   ### footer
   footer2 <- footer1 <- footer1.after <- footer.con <- footer.cat <- NULL
+  
   #### summary statistics
   if ((is.null(z) & any(continuous)) | (!is.null(z) & !is.factor(z))) {
-    footer.con <- paste0(switch(statistics,
-                                med.IQR = "median (1st and 3rd quartiles)",
-                                med.90  = "median (90% range)",
-                                med.range = "median (range)",
-                                mean.sd = "mean (sd)"),
-                         " for continuous variable(s).")
+    footer.con <- paste0(
+      paste(statistics, collapse = ", "), 
+      " for continuous variable(s)."
+    )
   }
+  
   if ((is.null(z) & any(continuous == FALSE)) | (!is.null(z) & is.factor(z))) {
-    footer.cat <- paste0("absolute count (%) for categorical variable(s)")
+    footer.cat <- "absolute count (%) for categorical variable(s)"
   }
+  
   footer1.after <- if (is.null(footer.con)) {
     paste0(footer.cat, ".")
   } else {
@@ -321,10 +585,13 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
     }
   }
   footer1 <- paste("Summary statistic is", footer1.after)
-
+  
   #### test
   if (test) {
-    footer2.cat <- paste(ifelse(chisq.test == FALSE, "Fisher's exact test", "Chi-squared test"), "for categorical variable(s)")
+    footer2.cat <- paste(
+      ifelse(chisq.test == FALSE, "Fisher's exact test", "Chi-squared test"), 
+      "for categorical variable(s)"
+    )
     footer2.con <- "Kruskal-Wallis/Mann-Whitney U-test for continuous variable(s)."
     footer2.after <- if (is.null(footer.con)) {
       paste0(footer2.cat, ".")
@@ -337,21 +604,23 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
     }
     footer2 <- paste("p-values were based on", footer2.after)
   }
-
-  footer <- c("N is number of all patients, n is number of patients with non-missing value.",
-              footer1,
-              if (any(value == "-")) {"- : value cannot be estimated."} else NULL,
-              footer2,
-              footer)
-
+  
+  footer <- c(
+    "N is number of all patients, n is number of patients with non-missing value.",
+    footer1,
+    if (any(value == "-")) {"- : value cannot be estimated."} else NULL,
+    footer2,
+    footer
+  )
+  
   ### flextable
   if (flextable) {
     requireNamespace("flextable")
     requireNamespace("officer")
-
+    
     ## main table
     tab <- flextable::flextable(as.data.frame(value))
-
+    
     ## header
     header1[1] <- header2[1]
     header1[seq(from = 2, to = 2 * length(gr.lev), by = 2)] <- header1[seq(from = 2, to = 2 * length(gr.lev), by = 2) + 1]
@@ -364,16 +633,16 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
            eval(parse(text = paste0("flextable::add_header(tab,",
                                     paste(paste0("V", 1:length(header1)), paste0("'", header2, "'"), sep = "=", collapse = ","),
                                     ", top = FALSE)"))))
-
+    
     tab <- flextable::merge_h(tab, part = "header")
     tab <- flextable::merge_v(tab, part = "header")
-
+    
     ## footer
     for (k in (1:length(footer))) {
       tab <- flextable::add_footer(tab, V1 = footer[k], top = FALSE)
       tab <- flextable::merge_at(tab, i = k, j = 1:length(header1), part = "footer")
     }
-
+    
     ## format
     ### width
     tab <- flextable::autofit(tab)
@@ -389,7 +658,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
     tab <- flextable::hline(tab, border = tabbd, part = "header")
     tab <- flextable::hline_top(tab, border = tabbd, part = "all")
     tab <- flextable::hline_bottom(tab, border = tabbd, part = "body")
-
+    
   } else {
     tab <- list(table = rbind(header1, header2, value),
                 footer = footer)
@@ -401,31 +670,87 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
 }
 
 sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, pooledGroup = FALSE,
-                                  statistics = "med.IQR", continuous = NA, fullfreq = TRUE, test = FALSE,
+                                  statistics = "mean, median (Q1-Q3)", continuous = NA, fullfreq = TRUE, test = FALSE,
                                   digits = 1, pdigits = pdigits, pcutoff = 0.0001, chisq.test = FALSE, correct = FALSE, workspace = 1000000,
                                   hybrid = FALSE, simulate.p.value = FALSE, B = 2000) {
 
-  ## functions
+  # ## functions to make the summary value of different statistics in different rows -hungtt
+  # mycont.summary <- function(x, y, z) {
+  #   ngroup <- length(levels(y))
+  # 
+  #   if (is.null(z)) {
+  #     summarystat.nice <- by(unclass(x), y, contSummary, statistics = statistics, digits = digits, n = FALSE)
+  #     n <- table(y[!is.na(x)])
+  # 
+  #     # Determine the number of values in each element of summarystat.nice
+  #     n_values <- length(summarystat.nice[[1]])
+  # 
+  #     # Create result matrix with appropriate dimensions
+  #     result <- matrix("", nrow = n_values, ncol = 1 + 2 * ngroup)
+  # 
+  # 
+  #     # Fill in the n values and summarystat.nice values
+  #     for (i in 1:ngroup) {
+  #       result[, 2 * i] <- n[i]
+  #       for (j in 1:n_values) {
+  #         result[j, 2 * i + 1] <- summarystat.nice[[i]][j]
+  #       }
+  #     }
+  # 
+  #   } else {
+  #     summarystat.nice <- by(unclass(z), list(x, y), contSummary, statistics = statistics, digits = digits, n = FALSE)
+  #     n <- table(x, y)
+  # 
+  #     # Determine the number of values in each element of summarystat.nice
+  #     n_values <- length(summarystat.nice[[1]])
+  # 
+  #     # Create result matrix with appropriate dimensions
+  #     result <- matrix("", nrow = n_values, ncol = 1 + 2 * ngroup)
+  # 
+  #     # Fill in the first column with labels
+  #     result[, 1] <- paste0("- ", levels(x))
+  # 
+  #     # Fill in the n values and summarystat.nice values
+  #     for (i in 1:ngroup) {
+  #       result[, 2 * i] <- apply(n, 1, sum)[i]
+  #       for (j in 1:n_values) {
+  #         result[j, 2 * i + 1] <- summarystat.nice[[i]][j]
+  #       }
+  #     }
+  #   }
+
   mycont.summary <- function(x, y, z) {
     ngroup <- length(levels(y))
 
     if (is.null(z)) {
       summarystat.nice <- by(unclass(x), y, contSummary, statistics = statistics, digits = digits, n = FALSE)
-      #n <- c(by(x, y, function(x) length(na.omit(x))))
       n <- table(y[!is.na(x)])
 
       result <- matrix("", ncol = ngroup * 2 + 1, nrow = 1)
       result[1, seq(2, ncol(result), by = 2)] <- n
-      result[1, seq(3, ncol(result), by = 2)] <- unlist(summarystat.nice)
+
+      # Check if summarystat.nice has more than one value per row and flatten it if necessary
+      if (length(summarystat.nice) > 1) {
+        result[1, seq(3, ncol(result), by = 2)] <- unlist(lapply(summarystat.nice, function(x) paste(x, collapse = ", ")))
+      } else {
+        result[1, seq(3, ncol(result), by = 2)] <- unlist(summarystat.nice)
+      }
 
     } else {
       summarystat.nice <- by(unclass(z), list(x, y), contSummary, statistics = statistics, digits = digits, n = FALSE)
       n <- table(x, y)
+
       result <- matrix("", ncol = ngroup * 2 + 1, nrow = length(levels(x)) + 1)
       result[1, seq(2, ncol(result), by = 2)] <- apply(n, 2, sum)
       result[2:nrow(result), seq(2, ncol(result), by = 2)] <- n
       result[2:nrow(result), 1] <- paste0("- ", levels(x), " (n = ", apply(n, 1, sum), ")")
-      result[2:nrow(result), seq(3, ncol(result), by = 2)] <- unlist(summarystat.nice)
+
+      # Check if summarystat.nice has more than one value per row and flatten it if necessary
+      if (length(summarystat.nice) > 1) {
+        result[2:nrow(result), seq(3, ncol(result), by = 2)] <- unlist(lapply(summarystat.nice, function(x) paste(x, collapse = ", ")))
+      } else {
+        result[2:nrow(result), seq(3, ncol(result), by = 2)] <- unlist(summarystat.nice)
+      }
     }
 
     if (test == TRUE & ngroup > 1) {
@@ -451,8 +776,35 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
         })
         result <- cbind(result, c("", pval))
       }
-
+      
     }
+  
+    
+    # if (test == TRUE & ngroup > 1) {
+    #   # overall Kruskal-Wallis test for group differences
+    #   if (is.null(z)) {
+    #     m <- 1:(length(x) * (1 - 0.5 * as.numeric(pooledGroup)))
+    #     pval <- tryCatch(format.pval(kruskal.test(x = x[m], g = y[m])$p.value,
+    #                                  eps = pcutoff, digits = pdigits, scientific = FALSE),
+    #                      error = function(c) NA)
+    #     result <- cbind(result, pval)
+    #   } else {
+    #     pval <- sapply(1:length(levels(x)), function(i) {
+    #       q <- which(x == levels(x)[i])
+    #       if (length(q) == 0) {
+    #         out <- NA
+    #       } else {
+    #         m <- q[q %in% 1:(length(z) * (1 - 0.5 * as.numeric(pooledGroup)))]
+    #         out <- tryCatch(format.pval(kruskal.test(x = z[m], g = y[m])$p.value,
+    #                                     eps = pcutoff, digits = pdigits, scientific = FALSE),
+    #                         error = function(c) NA)
+    #       }
+    #       return(out)
+    #     })
+    #     result <- cbind(result, c("", pval))
+    #   }
+    # 
+    # }
     return(result)
   }
 
@@ -569,7 +921,9 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
       mycont.summary(x = x, y = y, z = z)
     }
   }
-
+ 
+ 
+  
   out[1, 1] <- label_list
   return(out)
 }
