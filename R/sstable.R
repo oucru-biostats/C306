@@ -1943,12 +1943,13 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, overall.model,
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
 
   # result in entire population
-  if (!missing(overall.model))
+  if (!missing(overall.model)){
+    added.terms <- terms(overall.model) |> attr('term.labels')
     overall.model <- update(base.model,
                             as.formula(paste('. ~ . +',
-                                             paste0('`',formula.tools::rhs.vars(overall.model), '`'),
+                                             added.terms,
                                              collapse='+')))
-  else overall.model <- base.model
+  } else overall.model <- base.model
   result <- sstable.survcomp(model = overall.model, data = data, time=time, reference.arm=reference.arm,
                              medsum = FALSE, digits = digits,
                              compare.method = compare.method, compare.args = compare.args,
