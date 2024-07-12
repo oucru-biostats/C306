@@ -702,7 +702,7 @@ rbind.ss_ae <- function(tbl1, tbl2, footer=NULL){
   out
 }
 
-#' @rdname rbind.ss_tbl
+#' @rdname rbind.ss_obj
 #' @method rbind ss_survcomp
 #' @export
 rbind.ss_survcomp <- function(tbl1, tbl2, footer=NULL){
@@ -714,7 +714,7 @@ rbind.ss_survcomp <- function(tbl1, tbl2, footer=NULL){
   out
 }
 
-#' @rdname rbind.ss_tbl
+#' @rdname rbind.ss_obj
 #' @method rbind ss_baseline
 #' @export
 rbind.ss_baseline <- function(tbl1, tbl2, footer=NULL){

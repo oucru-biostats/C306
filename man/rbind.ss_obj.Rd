@@ -3,11 +3,17 @@
 \name{rbind.ss_obj}
 \alias{rbind.ss_obj}
 \alias{rbind.ss_ae}
+\alias{rbind.ss_survcomp}
+\alias{rbind.ss_baseline}
 \title{Row-binding two sstables}
 \usage{
 \method{rbind}{ss_obj}(tbl1, tbl2, footer = NULL, ...)
 
 \method{rbind}{ss_ae}(tbl1, tbl2, footer = NULL)
+
+\method{rbind}{ss_survcomp}(tbl1, tbl2, footer = NULL)
+
+\method{rbind}{ss_baseline}(tbl1, tbl2, footer = NULL)
 }
 \arguments{
 \item{tbl1, tbl2, }{two object of class sstables of the same template. Only export for technical use.}

@@ -46,7 +46,8 @@ Imports:
     ggplot2,
     survminer,
     ggsurvfit,
-    survival
+    survival,
+    aod
 RoxygenNote: 7.3.2
 Suggests: knitr,
     rmarkdown,
