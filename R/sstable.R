@@ -1034,13 +1034,14 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
     n.grade<-length(unique(ae_data[, grade.var]))
     tbl1_call <- make_tblcall(tmp, aetype.var[[1]])
     tbl1 <- eval(tbl1_call, envir = env)
-    rownames(tbl1$table)[4+n.grade] = 'section'
+    if(print.aetype.header) rownames(tbl1$table)[4+n.grade] = 'section'
     tbl2p <-
       lapply(aetype.var[-1],
              function(.aetype.var){
                tbl_call <- make_tblcall(tmp, .aetype.var)
                sstbl = eval(tbl_call, envir=env)
-               rownames(sstbl$table)[4+n.grade] = 'section'
+               if(print.aetype.header) 
+									rownames(sstbl$table)[4+n.grade] = 'section'
                sstbl
              })
     tbl2 <- tbl2p[[1]]
