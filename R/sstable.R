@@ -1945,10 +1945,9 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, overall.model,
   # result in entire population
   if (!missing(overall.model))
     overall.model <- update(base.model,
-                            as.formula('. ~ . +',
-                                       paste(
-                                         paste0('`',formula.tools::rhs.vars(overall.model), '`'),
-                                         collapse='+')))
+                            as.formula(paste('. ~ . +',
+                                             paste0('`',formula.tools::rhs.vars(overall.model), '`'),
+                                             collapse='+')))
   else overall.model <- base.model
   result <- sstable.survcomp(model = overall.model, data = data, time=time, reference.arm=reference.arm,
                              medsum = FALSE, digits = digits,
