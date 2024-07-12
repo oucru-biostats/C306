@@ -1910,7 +1910,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
 #' @author This function was originally written by Marcel Wolbers. Trinh Dong and Lam Phung Khanh did some modification.
 #' @import survival
 #' @export
-sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
+sstable.survcomp.subgroup <- function(base.model, subgroup.model, overall.model, data,
                                       time = Inf,
                                       reference.arm = c('B', 'A'),
                                       compare.method = c('cox', 'rmst', 'cuminc'),
