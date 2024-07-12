@@ -11,7 +11,8 @@ sstable.baseline(
   pooledGroup = FALSE,
   keepEmptyGroup = FALSE,
   statistics = "med.IQR",
-  continuous = NA,
+  cont = NULL,
+  cate = NULL,
   fullfreq = TRUE,
   digits = 1,
   test = FALSE,
@@ -45,7 +46,9 @@ If formula is in the form of x+y ~ a|z, the function will summary z with respect
 
 \item{statistics}{a character specifies summary statistics for continuous row variables.}
 
-\item{continuous}{a logical vector specifies whether each row variables is continuous or categorical.}
+\item{cont}{a vector specifies whether each row variables is continuous.}
+
+\item{cate}{a vector specifies whether each row variables is categorical.}
 
 \item{digits}{a number specifies number of significant digits for numeric statistics.}
 

@@ -31,6 +31,7 @@ Depends:
     dplyr,
     R (>= 2.10)
 Imports:
+    Hmisc,
     stringi,
     lubridate,
     car,
@@ -45,7 +46,8 @@ Imports:
     ggplot2,
     survminer,
     ggsurvfit,
-    survival
+    survival,
+    aod
 RoxygenNote: 7.3.2
 Suggests: knitr,
     rmarkdown,
