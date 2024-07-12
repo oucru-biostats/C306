@@ -1134,8 +1134,8 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   aetype_lev.raw <- unique(as.character(ae_data[[aetype.var]]))
 
   # Check if aetype.var has a label attribute
-  if (!is.null(names(aetype_var))){
-    aetype.var.label <- names(aetype_var)
+  if (!is.null(names(aetype.var))){
+    aetype.var.label <- names(aetype.var)
   } else if (!is.null(attr(ae_data[[aetype.var]], "label"))) {
     aetype.var.label <- attr(ae_data[[aetype.var]], "label")
   } else {
