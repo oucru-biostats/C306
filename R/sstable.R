@@ -1080,6 +1080,12 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       stop('Sorting can only apply to `pt`, `ep`, and `p`')
   }
 
+   #strip tibble class
+ 	ae_data <- as.data.frame(ae_data)
+  fullid_data <- as.data.frame(fullid_data)
+  group_data <- as.data.frame(group_data)
+  is.grouped <- !missing(group.var)
+
   # Check if grade.var is not NULL and has any NA values - hungtt
   if (!is.null(grade.var) && any(is.na(ae_data[[grade.var]]))) {
     # Replace NA values with "Grade NA"
@@ -1087,7 +1093,9 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   }
   # Check if any aetype.var is NA and replace with "NA"
   for (var in aetype.var) {
+		lbl = attr(ae_data[[var]], 'label')
 		ae_data[[var]] = as.character(ae_data[[var]])
+		ae_data[[var]] = structure(ae_data[[var]], label=lbl)
     if (any(is.na(ae_data[[var]]))) {
       #if (is.factor(ae_data[[var]]))
           #levels(ae_data[[var]]) <- c(levels(ae_data[[var]]), na.text )
@@ -1095,12 +1103,6 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       ae_data[[var]][is.na(ae_data[[var]])] <- na.text
     }
   }
-
-  # strip the tibble class which causes issues - trinhdhk
-  ae_data <- as.data.frame(ae_data)
-  fullid_data <- as.data.frame(fullid_data)
-  group_data <- as.data.frame(group_data)
-  is.grouped <- !missing(group.var)
 
   ## format study arms
   idarm <- fullid_data[, c(id.var, arm.var)]; colnames(idarm) <- c("id", "arm")
