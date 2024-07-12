@@ -10,7 +10,7 @@ sstable.baseline(
   bycol = TRUE,
   pooledGroup = FALSE,
   keepEmptyGroup = FALSE,
-  statistics = "med.IQR",
+  statistics = "mean, median (Q1-Q3)",
   cont = NULL,
   cate = NULL,
   fullfreq = TRUE,
@@ -26,7 +26,8 @@ sstable.baseline(
   hybrid = FALSE,
   footer = NULL,
   flextable = FALSE,
-  bg = "#F2EFEE"
+  bg = "#F2EFEE",
+  df = FALSE
 )
 }
 \arguments{
@@ -75,6 +76,8 @@ If formula is in the form of x+y ~ a|z, the function will summary z with respect
 \item{flextable}{a logical value specifies whether output will be a flextable-type table.}
 
 \item{bg}{a character specifies color of the odd rows in the body of flextable-type table.}
+
+\item{df}{a logical values specifies whether output will be a draw dataframe.}
 }
 \value{
 a flextable-type table or a list with values/headers/footers

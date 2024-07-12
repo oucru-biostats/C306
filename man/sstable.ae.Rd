@@ -25,6 +25,8 @@ sstable.ae(
   B = 2000,
   workspace = 1e+06,
   hybrid = FALSE,
+  print.aetype.header = length(aetype.var) > 1,
+  na.text = "(Missing)",
   footer = NULL,
   flextable = TRUE,
   bg = "#F2EFEE"
@@ -75,6 +77,10 @@ Be aware that even when chisq.test==TRUE, if expected values are < 1, the later 
 \item{workspace}{a parameter for fisher.test().}
 
 \item{hybrid}{a parameter for fisher.test().}
+
+\item{print.aetype.header}{a logical value, whether to print the label of aetype.header.}
+
+\item{na.text}{[`(Missing)`] in-placed text for missing AE}
 
 \item{footer}{a vector of strings to be used as footnote of table.}
 
