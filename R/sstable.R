@@ -1027,11 +1027,11 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       new_call <- orig_call
       new_call$aetype.var <- .aetype_var
       new_call$flextable <- FALSE
-      new_call$print.aetype.header <- force(orig_call$print.aetype.header)
+      new_call$print.aetype.header <- force(print.aetype.header)
       new_call
     }
     env <- rlang::caller_env()
-    n.grade<-length(unique(na.omit(ae_data[, grade.var])))
+    n.grade<-length(unique(ae_data[, grade.var]))
     tbl1_call <- make_tblcall(tmp, aetype.var[[1]])
     tbl1 <- eval(tbl1_call, envir = env)
     rownames(tbl1$table)[4+n.grade] = 'section'
@@ -1140,10 +1140,12 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   ae_any <- ae_data  # Assuming ae_data is your original data frame
 
   mutated_data <- if(print.aetype.header)
-    replace_with_var_names(ae_any, aetype.var, aetype.var) else ae_any
+    replace_with_var_names(ae_any, aetype.var, aetype.var) else NULL
   ae_any[, aetype.var] <- "Any selected adverse event"
   # Combine original and mutated data (assuming ae_data and ae_any exist)
-  ae <- rbind(ae_data, ae_any, mutated_data)
+  ae <- if(print.aetype.header) 
+		rbind(ae_data, ae_any, mutated_data) else 
+		rbind(ae_data, ae_any)
 
   # Extract grades of ae (assuming grade.var exists)
   if (!is.null(grade.var)) {
