@@ -1871,6 +1871,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
 #' @description A function to summarize results for a survival model by treatment arm (variable "arm") and subgroup.
 #'
 #' @param base.model a formula from which sub-group specific estimates are extracted (!! arm must be the first covariate in the model).
+#' @param overall.model an optional one-sided formula for additional terms for overall population only
 #' @param subgroup.model a formula of the form "~subgrouping.variable1+subgrouping.variable2" (!! subgrouping.variable must be factors and there should be nothing on the left-hand side of the formula).
 #' @param data a data frame to fit the survival model.
 #' @param add.risk [\code{TRUE}] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.
@@ -1901,11 +1902,12 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
 #' @param footer a [\code{NULL}] vector of strings to be used as footnote of table.
 #' @param flextable [\code{TRUE}] a logical value specifies whether output will be a flextable-type table.
 #' @param bg [\code{#F2EFEE}] a character specifies color of the odd rows in the body of flextable-type table.
+#' @param overall [\code{TRUE}] where to print overall model
 #' @param ... arguments that are passed to sstable.survcomp
 #'
 #' @return a flextable-type table or a list with values/headers/footers
 #'
-#' @author This function was originally written by Marcel Wolbers. Lam Phung Khanh did some modification.
+#' @author This function was originally written by Marcel Wolbers. Trinh Dong and Lam Phung Khanh did some modification.
 #' @import survival
 #' @export
 sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
@@ -1941,7 +1943,14 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   if (!inherits(data[, arm.var], "factor")) data[, arm.var] <- factor(data[, arm.var])
 
   # result in entire population
-  result <- sstable.survcomp(model = base.model, data = data, time=time, reference.arm=reference.arm,
+  if (!missing(overall.model))
+    overall.model <- update(base.model,
+                            as.formula('. ~ . +',
+                                       paste(
+                                         paste0('`',formula.tools::rhs.vars(overall.model), '`'),
+                                         collapse='+')))
+  else overall.model <- base.model
+  result <- sstable.survcomp(model = overall.model, data = data, time=time, reference.arm=reference.arm,
                              medsum = FALSE, digits = digits,
                              compare.method = compare.method, compare.args = compare.args,
                              p.compare = p.compare,
@@ -2099,6 +2108,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
     footer)
 
   # flextable
+  if (!overall) result <- result[-3,]
   if (flextable) {
     requireNamespace("flextable")
     requireNamespace("officer")
