@@ -1027,7 +1027,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       new_call <- orig_call
       new_call$aetype.var <- .aetype_var
       new_call$flextable <- FALSE
-      new_call$print.aetype.header <- force(orig_call$print.aetype.header)
+      new_call$print.aetype.header <- force(print.aetype.header)
       new_call
     }
     env <- rlang::caller_env()
