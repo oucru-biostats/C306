@@ -610,50 +610,48 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
 #' @param flextable a logical value specifies whether output will be a flextable-type table.
 #' @param bg a character specifies color of the odd rows in the body of flextable-type table.
 #' @param group.var.priority a vector that specifies which groups will be appear first in the table.
+#' @param print.aetype.header a logical value, whether to print the label of aetype.header.
 #'
 #' @return a flextable-type table or a list with values/headers/footers
 #' @import dplyr
 #' @import tidyr
 #' @export
-sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.var, grade.var = NULL,
+sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
+                       aetype.var, grade.var = NULL,
                        group.var = NULL, group.var.priority = NULL, arm.var, sort.by, digits = 0,
                        test = TRUE, pdigits = 3, pcutoff = 0.001, chisq.test = FALSE, correct = FALSE,
                        simulate.p.value = FALSE, B = 2000, workspace = 1000000, hybrid = FALSE,
+                       print.aetype.header = length(aetype.var) > 1,
                        footer = NULL, flextable = TRUE, bg = "#F2EFEE"){
   requireNamespace("dplyr")
   requireNamespace("tidyr")
 
-  # Check if grade.var is not NULL and has any NA values
-  if (!is.null(grade.var) && any(is.na(ae_data[[grade.var]]))) {
-    # Replace NA values with "Grade NA"
-    ae_data[[grade.var]][is.na(ae_data[[grade.var]])] <- "Grade NA"
-  }
-  # Check if any aetype.var is NA and replace with "NA"
-  for (var in aetype.var) {
-    if (any(is.na(ae_data[[var]]))) {
-      ae_data[[var]][is.na(ae_data[[var]])] <- "NA"
-    }
-  }
-
   tmp <- match.call()
+  # if more than one aetype.var
+  # perform sstable.ae for each for aetype.var
+  # then do rbind
   if (length(aetype.var) > 1){
+
+    # function to prepare
+    make_tblcall <- function(orig_call, .aetype_var) {
+      new_call <- orig_call
+      new_call$aetype.var <- .aetype_var
+      new_call$flextable <- FALSE
+      new_call$print.aetype.header <- force(orig_call$print.aetype.header)
+      new_call
+    }
     env <- rlang::caller_env()
     n.grade<-length(unique(na.omit(ae_data[, grade.var])))
-    tbl1_call <- tmp
-    tbl1_call$aetype.var <- aetype.var[[1]]
-    tbl1_call$flextable <- FALSE
+    tbl1_call <- make_tblcall(tmp, aetype.var[[1]])
     tbl1 <- eval(tbl1_call, envir = env)
     rownames(tbl1$table)[4+n.grade] = 'section'
     tbl2p <-
       lapply(aetype.var[-1],
              function(.aetype.var){
-               tbl_call <- tmp
-               tbl_call$aetype.var <- .aetype.var
-               tbl_call$flextable <- FALSE
-               # tbl_call$grade.var = NULL
-               z = eval(tbl_call, envir=env)
-               rownames(z$table)[4+n.grade] = 'section'
-               z
+               tbl_call <- make_tblcall(tmp, .aetype.var)
+               sstbl = eval(tbl_call, envir=env)
+               rownames(sstbl$table)[4+n.grade] = 'section'
+               sstbl
              })
     tbl2 <- tbl2p[[1]]
 
@@ -689,6 +687,18 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var, aetype.v
     if (length(sort.signs) < length(sort.vars)) sort.signs <- purrr::prepend(sort.signs, quote(`+`))
     if (length(setdiff(sort.vars, c('pt','ep','p'))))
       stop('Sorting can only apply to `pt`, `ep`, and `p`')
+  }
+
+  # Check if grade.var is not NULL and has any NA values - hungtt
+  if (!is.null(grade.var) && any(is.na(ae_data[[grade.var]]))) {
+    # Replace NA values with "Grade NA"
+    ae_data[[grade.var]][is.na(ae_data[[grade.var]])] <- "Grade NA"
+  }
+  # Check if any aetype.var is NA and replace with "NA"
+  for (var in aetype.var) {
+    if (any(is.na(ae_data[[var]]))) {
+      ae_data[[var]][is.na(ae_data[[var]])] <- "NA"
+    }
   }
 
   # strip the tibble class which causes issues - trinhdhk
@@ -1642,28 +1652,16 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
           ia.args$data <- dplyr::slice(data, seq_len(nrow(data))[-NAs])
         }
 
-
-        # Perform multivariate wald test for interaction term
-        tryCatch({
-          fitter <- switch(compare.method,
-                           'rmst' = eventglm::rmeanglm,
-                           'cuminc' = eventglm::cumincglm)
-          ia.fit <-
-            do.call(fitter, append(ia.args, c(formula=ia.model)))
-          main.terms <- colnames(model.matrix(main.model, data=ia.args$data))
-          ia.terms <- coef(ia.fit)
-          test.terms <- which(!names(ia.terms) %in% main.terms)
-          test <- aod::wald.test(vcov(ia.fit), b=ia.terms, Terms=test.terms)
-          test$result$chi2['P']
-        },
-          error=\(e) NA
-        )
-
+        # browsere)
+        anova(
+          do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
+          do.call(eventglm::rmeanglm, append(ia.args, c(formula=main.model))),
+         test = "Chisq"
+        )[2, "Pr(>Chi)"]
       }
+      # browser()
 
-    result[nrow(result), ncol(result)] <-
-      if (is.na(ia.pval)) '-' else
-        format.pval(ia.pval, digits = pdigits, eps = pcutoff)
+    result[nrow(result), ncol(result)] <- format.pval(ia.pval, digits = pdigits, eps = pcutoff)
 
     # Add results for each subgroup level
     for (j in 1:length(factor.levels)){
@@ -1715,10 +1713,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   footer <- c(
     compare.note,
     paste(compare.stat, "and p value were based on", paste0(compare.name, '.')),
-    sprintf(
-      "Test for heterogeneity is an %s test for interaction between treatment effect and each subgroup in the survival model not including other variables.",
-      if (compare.method == 'cox') 'Likelihood-ratio' else 'multivariate Wald'
-    ),
+    "Test for heterogeneity is an interaction test between treatment effect and each subgroup in the survival model not including other variables.",
     footer)
 
   # flextable
