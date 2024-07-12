@@ -1031,7 +1031,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       new_call
     }
     env <- rlang::caller_env()
-    n.grade<-length(unique(na.omit(ae_data[, grade.var])))
+    n.grade<-length(unique(ae_data[, grade.var]))
     tbl1_call <- make_tblcall(tmp, aetype.var[[1]])
     tbl1 <- eval(tbl1_call, envir = env)
     rownames(tbl1$table)[4+n.grade] = 'section'
