@@ -1916,7 +1916,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, overall.model,
                                       compare.method = c('cox', 'rmst', 'cuminc'),
                                       compare.args = list(),
                                       p.compare = TRUE,
-                                      digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE", ...){
+                                      digits = 2, pdigits = 3, pcutoff = 0.001, footer = NULL, flextable = TRUE, bg = "#F2EFEE", overall = TRUE,...){
 
 
   requireNamespace("survival")
