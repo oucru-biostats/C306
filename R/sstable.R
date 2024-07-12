@@ -1642,16 +1642,28 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
           ia.args$data <- dplyr::slice(data, seq_len(nrow(data))[-NAs])
         }
 
-        # browsere)
-        anova(
-          do.call(eventglm::rmeanglm, append(ia.args, c(formula=ia.model))),
-          do.call(eventglm::rmeanglm, append(ia.args, c(formula=main.model))),
-         test = "Chisq"
-        )[2, "Pr(>Chi)"]
-      }
-      # browser()
 
-    result[nrow(result), ncol(result)] <- format.pval(ia.pval, digits = pdigits, eps = pcutoff)
+        # Perform multivariate wald test for interaction term
+        tryCatch({
+          fitter <- switch(compare.method,
+                           'rmst' = eventglm::rmeanglm,
+                           'cuminc' = eventglm::cumincglm)
+          ia.fit <-
+            do.call(fitter, append(ia.args, c(formula=ia.model)))
+          main.terms <- colnames(model.matrix(main.model, data=ia.args$data))
+          ia.terms <- coef(ia.fit)
+          test.terms <- which(!names(ia.terms) %in% main.terms)
+          test <- aod::wald.test(vcov(ia.fit), b=ia.terms, Terms=test.terms)
+          test$result$chi2['P']
+        },
+          error=\(e) NA
+        )
+
+      }
+
+    result[nrow(result), ncol(result)] <-
+      if (is.na(ia.pval)) '-' else
+        format.pval(ia.pval, digits = pdigits, eps = pcutoff)
 
     # Add results for each subgroup level
     for (j in 1:length(factor.levels)){
@@ -1703,7 +1715,10 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, data,
   footer <- c(
     compare.note,
     paste(compare.stat, "and p value were based on", paste0(compare.name, '.')),
-    "Test for heterogeneity is an interaction test between treatment effect and each subgroup in the survival model not including other variables.",
+    sprintf(
+      "Test for heterogeneity is an %s test for interaction between treatment effect and each subgroup in the survival model not including other variables.",
+      if (compare.method == 'cox') 'Likelihood-ratio' else 'multivariate Wald'
+    ),
     footer)
 
   # flextable
