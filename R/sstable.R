@@ -1009,13 +1009,15 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
                        group.var = NULL, group.var.priority = NULL, arm.var, sort.by, digits = 0,
                        test = TRUE, pdigits = 3, pcutoff = 0.001, chisq.test = FALSE, correct = FALSE,
                        simulate.p.value = FALSE, B = 2000, workspace = 1000000, hybrid = FALSE,
-                       print.aetype.header = length(aetype.var) > 1,
+                       print.aetype.header =
+                         length(aetype.var) > 1 | any(length(names(aetype.var)) > 0) | any(isTRUE(nchar(names(aetype.var)) > 0)),
                        na.text = '(Missing)',
                        footer = NULL, flextable = TRUE, bg = "#F2EFEE"){
   requireNamespace("dplyr")
   requireNamespace("tidyr")
 
   tmp <- match.call()
+  print.aetype.header <- force(print.aetype.header)
 
   # if more than one aetype.var
   # perform sstable.ae for each for aetype.var
@@ -1027,22 +1029,19 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       new_call <- orig_call
       new_call$aetype.var <- .aetype_var
       new_call$flextable <- FALSE
-      new_call$print.aetype.header <- force(print.aetype.header)
+      new_call$print.aetype.header <- print.aetype.header
       new_call
     }
     env <- rlang::caller_env()
     n.grade <- if (length(grade.var)) length(unique(ae_data[[grade.var]])) else 0
     tbl1_call <- make_tblcall(tmp, aetype.var[1])
     tbl1 <- eval(tbl1_call, envir = env)
-    if(print.aetype.header) rownames(tbl1$table)[4+n.grade] = 'section'
-    # browser()
     tbl2p <-
-      lapply(aetype.var[-1],
-             function(.aetype.var){
+      lapply(seq_along(aetype.var[-1]),
+             function(i){
+               .aetype.var <- aetype.var[i+1]
                tbl_call <- make_tblcall(tmp, .aetype.var)
                sstbl = eval(tbl_call, envir=env)
-               if(print.aetype.header)
-									rownames(sstbl$table)[4+n.grade] = 'section'
                sstbl
              })
     tbl2 <- tbl2p[[1]]
@@ -1094,10 +1093,10 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   }
 
   # If there is a designated name to aetype.var, populate that into the data
-  if (!is.null(names(aetype.var))){
+  if (!is.null(names(aetype.var)) & isTRUE(nchar(names(aetype.var))>0)){
     attr(ae_data[, aetype.var[[1]]], 'label') <- names(aetype.var)[[1]]
-    aetype.var <- aetype.var[[1]]
   }
+  aetype.var <- aetype.var[[1]]
 
   # Check if any aetype.var is NA and replace with "NA"
   lbl = attr(ae_data[[aetype.var]], 'label')
@@ -1130,7 +1129,6 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   # Identify rows where aetype_var is not "NA"
     not_na_rows <- df[[aetype_var]] != na.text
 
-    # df[[aetype_var]] <- as.character(df[[aetype_var]])
     # Replace values with variable names or labels only where not "NA"
     if (!is.null(attr(df[[var]], "label"))) {
       df[[aetype_var]][not_na_rows] <- attr(df[[var]], "label")  # Use label if available
@@ -1357,8 +1355,6 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   }
 
   # browser()
-  #make index 1 for case aetype.var = 1 -hungtt
-  index_aetype.var <- length(unique(ae_data[, grade.var]))
   ## sorting - trinhdhk
   if (!missing(sort.by)){
     ## - the head will not be sorted.
@@ -1497,7 +1493,13 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
     tab <- flextable::hline(tab, border = tabbd, part = "header")
     tab <- flextable::hline_top(tab, border = tabbd, part = "all")
     tab <- flextable::hline_bottom(tab, border = tabbd, part = "body")
-    tab <- flextable::bold(tab, i = index_aetype.var + 2, j=1, part = "body")
+    if (print.aetype.header){
+      tab <- flextable::bold(
+        tab,
+        i = 2 + if (length(grade.var)) length(unique(ae_data[[grade.var]])) else 0,
+        j=1, part = "body")
+    }
+
     ### group-name rows-trinhdhk
     if (is.grouped) {
       tab <- flextable::merge_h_range(tab, grouptitle_index, 1, ncol(ae_value))
@@ -1507,6 +1509,9 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   } else {
     tab <- list(table = rbind(header1, header2, ae_value),
                 footer = footer)
+    if (print.aetype.header){
+      rownames(tab$table)[[4 + if (length(grade.var)) length(unique(ae_data[[grade.var]])) else 0]] <- 'section'
+    }
     class(tab$table) <- c('ae_tbl', 'ss_tbl', class(tab$table))
   }
   if (!flextable) class(tab) <- c('ss_ae','ss_obj')
