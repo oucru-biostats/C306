@@ -12,6 +12,7 @@ sstable.ae(
   aetype.var,
   grade.var = NULL,
   group.var = NULL,
+  group.var.priority = NULL,
   arm.var,
   sort.by,
   digits = 0,
@@ -24,6 +25,9 @@ sstable.ae(
   B = 2000,
   workspace = 1e+06,
   hybrid = FALSE,
+  print.aetype.header = length(aetype.var) > 1 | any(length(names(aetype.var)) > 0) |
+    any(isTRUE(nchar(names(aetype.var)) > 0)),
+  na.text = "(Missing)",
   footer = NULL,
   flextable = TRUE,
   bg = "#F2EFEE"
@@ -40,9 +44,11 @@ sstable.ae(
 
 \item{aetype.var}{a character specifies name of adverse event type variable (exists in adverse event data).}
 
-\item{grade.var}{a character specifies name of adverse event grade variable (exists in adverse event data).}
+\item{grade.var}{NULL or character specifies name of adverse event grade variable (exists in adverse event data).}
 
 \item{group.var}{a character specifies group (exists in adverse event data if group_data = NULL or group_data otherwise).}
+
+\item{group.var.priority}{a vector that specifies which groups will be appear first in the table.}
 
 \item{arm.var}{a character specifies name of treatment arm variable (exists in treatment arm data).}
 
@@ -72,6 +78,10 @@ Be aware that even when chisq.test==TRUE, if expected values are < 1, the later 
 \item{workspace}{a parameter for fisher.test().}
 
 \item{hybrid}{a parameter for fisher.test().}
+
+\item{print.aetype.header}{a logical value, whether to print the label of aetype.header.}
+
+\item{na.text}{[`(Missing)`] in-placed text for missing AE}
 
 \item{footer}{a vector of strings to be used as footnote of table.}
 

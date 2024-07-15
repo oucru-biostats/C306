@@ -94,7 +94,7 @@ ss_section <- function(sstable, rows){
 #' An accepted template for sstable: must be either 'baseline', 'survcomp', or 'ae'.
 #'
 #' If NA, the existing template in the sstable is kept as-is. It no template built-in, will return a no-template sstable instead.
-#' @param .guess a logical value. If TRUE, the function will try to get each row belongs to which part.
+#' @param .guess a logical value. If TRUE, the function will try to guess to which part each row belongs.
 #' @return a matrix of class ss_tbl
 #' @export
 ss_format <- function(sstable, header = c(), section = c(), body = c(), template =  c('baseline', 'survcomp', 'ae'), .guess= TRUE){
@@ -102,7 +102,12 @@ ss_format <- function(sstable, header = c(), section = c(), body = c(), template
   if (!is.na(template)) template <- match.arg(template)
   sstable <- ss_template(sstable, template = template)
   if (.guess) {
-    no.guess <- na.omit(as.numeric(c(header, section, body)))
+    no.guess.in.table <- which(grepl(
+      '(header)|(section)|(body)',
+      rownames(sstable),
+      perl = TRUE
+    ))
+    no.guess <- union(no.guess.in.table, na.omit(as.numeric(c(header, section, body))))
     # filter out from guess what have been defined
     guess <- ss_guess_format(sstable)
     h <- which(guess == 'header')
@@ -110,12 +115,16 @@ ss_format <- function(sstable, header = c(), section = c(), body = c(), template
     b <- which(guess == 'body')
     # filling the undecided row with auto guess
     header <- unique(c(h[!h %in% no.guess], header))
+    # if (length(colnames(sstable))) header <- c('colnames', header)
     section <- unique(c(s[!s %in% no.guess], section))
     body <- unique(c(b[!b %in% no.guess], body))
   }
   if (length(header)) sstable <- ss_header(sstable, rows = header)
   if (length(body)) sstable <- ss_body(sstable, rows = body)
   if (length(section)) sstable <- ss_section(sstable, rows = section)
+  if (sum(sapply(c('header', 'section', 'body'), grepl, x=rownames(sstable), fixed=TRUE)) != nrow(sstable))
+    stop('Some row are not classified as header, section, or body. Perhaps you want to set .guess to TRUE?')
+  class(sstable) <- c('formatted_sstable', class(sstable))
   sstable
 }
 
@@ -130,7 +139,7 @@ ss_guess_format.default <- function(sstable){
                     r <- sstable[i,]
                     if (isTRUE(grepl("header", rownames(sstable)[i]))) return("header")
                     if (all(is.na(suppressWarnings(as.numeric(r)))) && i <= 2) return("header")
-                    if (sum(r == '') == ncol(sstable)-1) return("section")
+                    if (sum(r == '', na.rm=TRUE) == ncol(sstable)-1) return("section")
                     return("body")
                   })
   return(guess)
@@ -141,7 +150,7 @@ ss_guess_format.ae_tbl <- function(sstable){
                   function(i){
                     if (i <= 2) return('header')
                     r <- sstable[i, ]
-                    if (sum(r == '') >= 2) return('section')
+                    if (sum(r == '', na.rm=TRUE) >= 2) return('section')
                     return('body')
                   })
   return(guess)
@@ -149,10 +158,17 @@ ss_guess_format.ae_tbl <- function(sstable){
 
 ss_guess_format.baseline_tbl <- function(sstable){
   guess <- c(rep('header',2), rep('body', nrow(sstable)-2))
+  return(guess)
 }
 
 ss_guess_format.survcomp_tbl <- function(sstable){
   guess <- c(rep('header',2), rep('body', nrow(sstable)-2))
+  return(guess)
+}
+
+ss_guess_format.summary_tbl <- function(sstable){
+  guess <- c('header', rep('body', nrow(sstable)-1))
+  return(guess)
 }
 
 #' Create summary table using flextable package.
@@ -165,10 +181,29 @@ ss_guess_format.survcomp_tbl <- function(sstable){
 #' @seealso \link[flextable]{flextable}
 #' @return an object of class flextable
 #' @export
-ss_flextable <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
+ss_flextable <- function(sstable, ...){
+  UseMethod('ss_flextable')
+}
+
+#' @rdname ss_flextable
+#' @method ss_flextable list
+#' @param add_footer additional footer lines to be appended to object footers
+#' @export
+ss_flextable.list <- function(sstable, add_footer = NULL,...){
+  ss_flextable(sstable$table, footer = c(sstable$footer, add_footer), ...)
+}
+
+#' @rdname ss_flextable
+#' @method ss_flextable ss_obj
+#' @export
+ss_flextable.ss_obj <- ss_flextable.list
+
+#' @rdname ss_flextable
+#' @export
+ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
   requireNamespace("flextable")
   requireNamespace("officer")
-  sstable <- ss_format(sstable, ..., .guess = TRUE)
+  if (!inherits(sstable, 'formatted_sstable')) sstable <- ss_format(sstable, ..., .guess = TRUE)
   header <- which(grepl("header", rownames(sstable)))
   body <- which(grepl("body", rownames(sstable)))
   section <-  which(grepl("section", rownames(sstable)))
@@ -215,8 +250,11 @@ ss_flextable <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
 
   ## header format
   ft <- flextable::set_header_labels(ft, values = ss.header2[[1]])
-  ft <- flextable::add_header_row(ft, values = ss.header2[[2]], top = F)
-  ft <- flextable::merge_h(ft, part = "header")
+  if (length(ss.header2) > 1)
+    for (i in seq_along(ss.header2)[-1])
+      ft <- flextable::add_header_row(ft, values = ss.header2[[i]], top = F)
+
+  ft <- flextable::merge_h(ft, i = 1:(length(ss.header2)-1), part = "header")
   ft <- flextable::merge_v(ft, part = "header")
 
   ## footer format
@@ -227,10 +265,13 @@ ss_flextable <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
 
   ## section format
   for (k in section){
-    ft <- flextable::bold(ft, i = k-length(header), j = 1:ncol(sstable), part = 'body')
+
     ### merging cells that from the left if the whole row is empty
-    if (all(sstable[k, -1] == ''))
+    if (all(sstable[k, -1] == '') %in% TRUE)
       ft <- flextable::merge_at(ft, i = k, j = 1:ncol(sstable), part = 'body')
+    else ft <- flextable::merge_h(ft, i = k , part = 'body')
+
+    ft <- flextable::bold(ft, i = k-length(header), j = 1, part = 'body')
   }
 
   ## format flextable
@@ -238,10 +279,21 @@ ss_flextable <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
   ft <- flextable::autofit(ft)
   ### alignment
   ft <- flextable::align(ft, j = 1, align = "left", part = "all")
+
+  ft_sstheme(ft, bg = "#F2EFEE" )
+}
+
+
+#' Flextable theming for sstable
+#'
+#' @description Theming flextable for sstable
+#' @param ft flextable
+#' @export
+ft_sstheme <- function(ft, bg = "#F2EFEE"){
   ### faces of header
   ft <- flextable::bold(ft, part = "header")
-  ### background
-  ft <- flextable::bg(ft, i = seq(from = 1, to = nrow(sstable[-header,]), by = 2), j = 1:length(ss.header2[[1]]),
+   ### background
+  ft <- flextable::bg(ft, i = seq(from = 1, to = nrow(ft$body$dataset), by = 2), j = 1:ncol(ft$body$dataset),
                       bg = bg, part = "body")
   ### border
   tabbd <- officer::fp_border(color="black", width = 1.5)
@@ -274,13 +326,26 @@ ss_flextable <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
 #' @return an object of class huxtable
 #' @seealso \link[huxtable]{huxtable}
 #' @export
-ss_huxtable <- function(sstable, footer = NULL,
+ss_huxtable <- function(sstable,...){
+  UseMethod('ss_huxtable')
+}
+
+#' @rdname ss_huxtable
+#' @param add_footer additional footer lines to be appended to object footers
+#' @export
+ss_huxtable.list <- function(sstable, add_footer = NULL,...){
+  ss_huxtable(sstable$table, footer = c(sstable$footer, add_footer), ...)
+}
+
+#' @rdname ss_huxtable
+#' @export
+ss_huxtable.default <- function(sstable, footer = NULL,
                         caption = NULL, caption_pos = c("top", "bottom", "topleft", "topcenter", "topright",
                                                         "bottomleft", "bottomcenter", "bottomright"),
                         bg = c(grey(.95), 'white'), border_width=0.8, border_color = grey(.75), wrap = FALSE,...){
   requireNamespace('huxtable')
   if (missing(caption_pos)) caption_pos <- 'bottomcenter' else caption_pos <- match.arg(caption_pos)
-  sstable <- ss_format(sstable, ..., .guess = TRUE)
+  if (!inherits(sstable, 'formatted_sstable')) sstable <- ss_format(sstable, ..., .guess = TRUE)
   header <- which(grepl("header", rownames(sstable)))
   body <- which(grepl("body", rownames(sstable)))
   section <-  which(grepl("section", rownames(sstable)))
@@ -407,7 +472,7 @@ ss_huxtable <- function(sstable, footer = NULL,
 
 #' A stripe theme for huxtable object
 #'
-#' @description This function provides a stripped theme for huxtable object
+#' @description This function provides a markdown stripe theme for huxtable object
 #' @param ht an object of class huxtable
 #' @param header_rows a numeric vector that delimits the header zone.
 #' @param bg a character vector that defines background color of the flextable. If length(bg) >= 2, the table will have stripe background, otherwise plain.
@@ -474,4 +539,189 @@ ht_theme_kable <- function(ht, header_rows = 1:2, header_cols = NULL,
     huxtable::background_color(ht)[header_rows,] <- bg[[1]]
   } else huxtable::background_color(ht) <- bg
   ht
+}
+
+#' Coerce an object to sstable
+#' @description A function to coerce objects to a sstable
+#' @param x An object, usually a named list of length 2 whose names are 'table' and 'footer', or a data.frame/matrix (optionally with attribute "footer")
+#' @param flextable logical value specifying whether to return a flextable. Default is FALSE
+#' @param include_footnote logical value specifying whether to include footnote in the output. Default is FALSE
+#' @param ... additional parameters passed to \link{ss_flextable}
+#' @return A matrix of class ss_tbl if flextable == FALSE, otherwise a flextable
+#' @export
+#'
+as_sstable <- function(x,...){
+  UseMethod('as_sstable')
+}
+
+#' @rdname as_sstable
+#' @export
+as_sstable.default <- function(x, flextable = FALSE, ...){
+  out <- list()
+  out$table <- as.matrix(x$table)
+  out$table <- rbind(colnames(out$table), out$table)
+  out$table <- cbind(rownames(out$table), out$table)
+  colnames(out$table) <- rownames(out$table) <- NULL
+  if (length(attr(x, 'footer'))) out$footer <- attr(x, 'footer')
+
+  class(out$table) <- c('ss_tbl', 'matrix')
+  if (flextable) return(ss_flextable(out, ...))
+  return(out)
+}
+
+#' @rdname as_sstable
+#' @export
+as_sstable.list <- function(x, flextable = FALSE, ...){
+  out <- list()
+
+  if (is.null(x$header))
+    return(as_sstable.default(x, flextable = flextable, ...))
+  header <- if (inherits(x$header, 'matrix')) x$header else do.call(rbind, x$header)
+  rownames(header) = paste0('header', seq_len(nrow(header)))
+
+  if (inherits(x$body, 'list')){
+    body <- lapply(seq_along(x$body), function(i){
+      cont <- x$body[[i]]
+      title <- names(x$body)[[i]]
+      if (is.null(title)) title <- ''
+      title <- rep(title, ncol(cont))
+      sec <- rbind(title, cont)
+      rownames(sec) = c(paste0('section', i), paste0('body',i,  seq_len(nrow(cont))))
+      if (title == '' & i == 1) sec <- sec[-1,]
+      sec
+    })
+    body <- do.call(rbind, body)
+  } else {
+      body <- as.matrix(x$body)
+      rownames(body) <- paste0('body', seq_len(nrow(body)))
+  }
+
+  out$table <- rbind(header, body)
+  out$footer <- x$footer
+  class(out$table) <- c('ss_tbl', 'matrix')
+
+  if (flextable) return(ss_flextable(out, ...))
+  return(out)
+}
+
+#' @rdname as_sstable
+#' @export
+as_sstable.logist_summary <- function(x, include_footnote = TRUE, flextable = FALSE, ...){
+  out <- list()
+  out$table <- as.matrix(x)
+  out$table <- rbind(colnames(out$table), out$table)
+  out$table <- cbind(rownames(out$table), out$table)
+  colnames(out$table) <- rownames(out$table) <- NULL
+  out$footer <- attr(x, 'footer')
+  class(out$table) <- c('summary_tbl', 'ss_tbl', 'matrix')
+
+  if (flextable){
+    logist_summary.sstable <- ss_flextable(out$table, footer = out$footer, ...)
+    return(logist_summary.sstable)
+  }
+
+  if (include_footnote) return(out)
+  out$table
+}
+
+#' @rdname as_sstable
+#' @param include_footsnote logical value specifying whether to include footnote in the output. Default is FALSE
+#' @export
+as_sstable.overlap_summary <- function(x, include_footnote = TRUE, flextable = FALSE, ...){
+  out <- list()
+  out$table <- as.matrix(x)
+  out$table <- rbind(colnames(out$table), out$table)
+  out$table <- cbind(rownames(out$table), out$table)
+  colnames(out$table) <- rownames(out$table) <- NULL
+  out$footer <- attr(x, 'footer')
+  class(out$table) <- c('summary_tbl', 'ss_tbl', 'matrix')
+
+  if (flextable){
+    overlap_summary.sstable <- ss_flextable(out$table, footer = out$footer, ...)
+    return(overlap_summary.sstable)
+  }
+
+  if (include_footnote) return(out)
+  out$table
+}
+
+#' @rdname as_sstable
+#' @export
+as_sstable.subgroup_logist_summary <- function(x, include_footnote = TRUE, flextable = FALSE, ...)
+{
+  tables <- sapply(x, as_sstable, include_footnote = FALSE, ..., simplify = FALSE)
+  footer <- attr(x[[1]], 'footer')
+  first_header <- c('', tables[[1]][1,-1])
+  tables <- lapply(tables, `[`, -1,)
+  headers <- matrix(rep('', length(tables) * ncol(tables[[1]])), ncol = ncol(tables[[1]]))
+  headers[,1] <- paste(attr(x, 'base_var'), '=', names(tables))
+  # browser()
+  table <- do.call(rbind,
+                   lapply(seq_along(tables),
+                          function(i) rbind(headers[i,], tables[[i]])))
+  table <- rbind(first_header, table)
+  sstable <- ss_format(table, header = 1, section = (seq_len(length(tables)) - 1)*(nrow(tables[[1]])+1)+2)
+  if (flextable) return(ss_flextable(sstable, footer = footer))
+  if (include_footnote) return(list(table = sstable, footer = footer))
+  sstable
+}
+
+
+#' Row-binding two sstables
+#' @description
+#' Row-binding two sstables
+#' @param tbl1,tbl2, two object of class sstables of the same template. Only export for technical use.
+#' @param footer [NULL] default is the joint footer of two ss_tbl
+#' @param ... args passed to the downstream method
+#' @export
+rbind.ss_obj <- function(tbl1, tbl2, footer=NULL, ...){
+  if (!identical(class(tbl1$table), class(tbl2$table)))
+    stop('tbl1 and tbl2 must be of the same class.')
+  if (ncol(tbl1$table) != ncol(tbl2$table))
+    stop('Unmatched number of columns between tbl1 and tbl2.')
+  NextMethod('rbind')
+}
+
+._do_rbind <- function(tbl1, tbl2, header=1){
+  new_tbl <- list()
+  new_tbl$table <- rbind(tbl1$table, tbl2$table[-header,])
+  new_tbl$footer <- tbl1$footer
+  class(new_tbl$table) <- class(tbl1$table)
+  new_tbl
+}
+
+#' @rdname rbind.ss_obj
+#' @method rbind ss_ae
+#' @export
+rbind.ss_ae <- function(tbl1, tbl2, footer=NULL){
+  if (!all.equal(tbl1$footer, tbl2$footer) & is.null(footer))
+    stop('Two footers mismatched. Perhaps two tbl are using different config? \n
+         To ignore this, set a specific footer.')
+  out <- ._do_rbind(tbl1, tbl2, header=1:3)
+  if (!is.null(footer)) out$footer <- footer
+  out
+}
+
+#' @rdname rbind.ss_obj
+#' @method rbind ss_survcomp
+#' @export
+rbind.ss_survcomp <- function(tbl1, tbl2, footer=NULL){
+  if (!all.equal(tbl1$footer, tbl2$footer) & is.null(footer))
+    stop('Two footers mismatched. Perhaps two tbl are using different config? \n
+         To ignore this, set a specific footer.')
+  out <- ._do_rbind(tbl1, tbl2, header=1:3)
+  if (!is.null(footer)) out$footer <- footer
+  out
+}
+
+#' @rdname rbind.ss_obj
+#' @method rbind ss_baseline
+#' @export
+rbind.ss_baseline <- function(tbl1, tbl2, footer=NULL){
+  if (!all.equal(tbl1$footer, tbl2$footer) & is.null(footer))
+    stop('Two footers mismatched. Perhaps two tbl are using different config? \n
+         To ignore this, set a specific footer.')
+  out <- ._do_rbind(tbl1, tbl2, header=1)
+  if (!is.null(footer)) out$footer <- footer
+  out
 }
