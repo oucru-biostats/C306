@@ -165,16 +165,16 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
                                    workspace = 1000000, hybrid = FALSE, footer = NULL, flextable = FALSE, bg = "#F2EFEE") {
   ## get information from formula
   info <- sstable.formula(formula)
-  
+
   ## strip the tibble class which causes issue - trinhdhk
   data <- as.data.frame(data)
-  
+
   ## get data
   dat <- model.frame(info$formula0, data = data, na.action = NULL)
   x <- xlabel <- dat[, info$index$x, drop = FALSE]
   y <- if (info$index$y > 0) dat[, info$index$y] else NULL
   z <- if (info$index$z > 0) dat[, info$index$z] else NULL
-  
+
   ## y must be categorical variable
   if (!is.null(y)) {
     if (all(!c("character", "factor", "logical") %in% class(y)) |
@@ -192,20 +192,20 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
   } else {
     y <- factor(rep("Total", nrow(dat)))
   }
-  
+
   #browser()
-  
+
   ## determine type of x (argument: cont and cate)
   varlist <- getvar(formula) #hungtt
   varlist <- varlist[-length(varlist)] #remove the y name
-  
+
   # Convert varlist, cont, and cate to lowercase for case-insensitive comparison
   varlist_lower <- tolower(varlist)
   cont_lower <- tolower(cont)
   cate_lower <- tolower(cate)
-  
+
   continuous <- ifelse(varlist_lower %in% cont_lower, TRUE, ifelse(varlist_lower %in% cate_lower, FALSE, NA)) #assign var type
-  
+
   continuous <- sapply(1:ncol(x), function(i) {
     out <- ifelse(is.na(continuous[i]),
                   ifelse(any(c("factor", "character", "logical") %in% class(x[, i])) |
@@ -213,19 +213,19 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
                   continuous[i])
     return(out)
   })
-  
-  
+
+
   for (i in (1:ncol(x))) {
     if (continuous[i] == FALSE & !is.factor(x[, i])) x[, i] <- factor(x[, i], levels = sort(unique(na.omit(x[, i]))))
   }
-  
+
   ## if z exists, x must be categorical
   if (!is.null(z) & any(continuous == TRUE)) stop("Row-wise variable must be categorical when third dimension variable exists !!!")
-  
+
   ## if use by-row layout, x must be categorical
   #browser()
   if (bycol == FALSE & any(sapply(1:ncol(x), function(i) is.factor(x[,i])) == FALSE)) stop("Row-wise variable must be categorical in by-row layout !!!")
-  
+
   ## determine type of z
   if (!is.null(z)) {
     zdiscrete <- any(c("factor", "character", "logical") %in% class(unclass(z))) |
@@ -233,7 +233,7 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
     # if (zcontinuous == FALSE & !is.factor(z)) z <- factor(z, levels = unique(na.omit(z)))
     if (zdiscrete) z <- factor(z, levels = unique(na.omit(z)))
   }
-  
+
   # browser()
   ## digits
   if (length(digits) == 1) {
@@ -241,7 +241,7 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
   } else {
     if (length(digits) != ncol(x)) stop("digits argument must have length 1 or similar length as number of row-wise variables !!!")
   }
-  
+
   ## if pooledGroup
   if (pooledGroup) {
     x <- rbind(x, x)
@@ -252,22 +252,22 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
   # else{
   #   z <- if (!is.null(z)) factor(z, levels = unique(na.omit(z))) else NULL
   # }
-  
+
   ## get variable name
   varname <- if (ncol(xlabel) == 1) getlabel(xlabel[, 1]) else getlabel(xlabel)
-  
-  
-  
+
+
+
   # Initialize an empty vector to store labels or variable names
   label_list <- character(length(varlist))
-  
+
   # Loop through the variables in varlist
   for (i in seq_along(varlist)) {
     var_name <- varlist[i]
-    
+
     # Retrieve the variable label if available
     var_label <- attr(data[[var_name]], "label")
-    
+
     # Check if the variable has a label or use the variable name
     if (!is.null(var_label) && var_label != "") {
       label_list[i] <- var_label
@@ -284,10 +284,10 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
     header1 <- c(header1, "p value")
     header2 <- c(header2, "")
   }
-  
+
   ### footer
   footer2 <- footer1 <- footer1.after <- footer.con <- footer.cat <- NULL
-  
+
   #### summary statistics
   if ((is.null(z) & any(continuous)) | (!is.null(z) & !is.factor(z))) {
     footer.con <- paste0(
@@ -295,11 +295,11 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
       " for continuous variable(s)."
     )
   }
-  
+
   if ((is.null(z) & any(continuous == FALSE)) | (!is.null(z) & is.factor(z))) {
     footer.cat <- "absolute count (%) for categorical variable(s)"
   }
-  
+
   footer1.after <- if (is.null(footer.con)) {
     paste0(footer.cat, ".")
   } else {
@@ -310,7 +310,7 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
     }
   }
   footer1 <- paste("Summary statistic is", footer1.after)
-  
+
   #### test
   if (test) {
     footer2.cat <- paste(
@@ -329,7 +329,7 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
     }
     footer2 <- paste("p-values were based on", footer2.after)
   }
-  
+
   footer <- c(
     "N is number of all patients, n is number of patients with non-missing value.",
     footer1,
@@ -337,15 +337,15 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
     footer2,
     footer
   )
-  
+
   ### flextable
   if (flextable) {
     requireNamespace("flextable")
     requireNamespace("officer")
-    
+
     ## main table
     tab <- flextable::flextable(as.data.frame(value))
-    
+
     ## header
     header1[1] <- header2[1]
     header1[seq(from = 2, to = 2 * length(gr.lev), by = 2)] <- header1[seq(from = 2, to = 2 * length(gr.lev), by = 2) + 1]
@@ -358,16 +358,16 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
            eval(parse(text = paste0("flextable::add_header(tab,",
                                     paste(paste0("V", 1:length(header1)), paste0("'", header2, "'"), sep = "=", collapse = ","),
                                     ", top = FALSE)"))))
-    
+
     tab <- flextable::merge_h(tab, part = "header")
     tab <- flextable::merge_v(tab, part = "header")
-    
+
     ## footer
     for (k in (1:length(footer))) {
       tab <- flextable::add_footer(tab, V1 = footer[k], top = FALSE)
       tab <- flextable::merge_at(tab, i = k, j = 1:length(header1), part = "footer")
     }
-    
+
     ## format
     ### width
     tab <- flextable::autofit(tab)
@@ -383,7 +383,7 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
     tab <- flextable::hline(tab, border = tabbd, part = "header")
     tab <- flextable::hline_top(tab, border = tabbd, part = "all")
     tab <- flextable::hline_bottom(tab, border = tabbd, part = "body")
-    
+
   } else {
     tab <- list(table = rbind(header1, header2, value),
                 footer = footer)
@@ -1031,16 +1031,17 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       new_call
     }
     env <- rlang::caller_env()
-    n.grade<-length(unique(ae_data[, grade.var]))
-    tbl1_call <- make_tblcall(tmp, aetype.var[[1]])
+    n.grade <- if (length(grade.var)) length(unique(ae_data[[grade.var]])) else 0
+    tbl1_call <- make_tblcall(tmp, aetype.var[1])
     tbl1 <- eval(tbl1_call, envir = env)
     if(print.aetype.header) rownames(tbl1$table)[4+n.grade] = 'section'
+    # browser()
     tbl2p <-
       lapply(aetype.var[-1],
              function(.aetype.var){
                tbl_call <- make_tblcall(tmp, .aetype.var)
                sstbl = eval(tbl_call, envir=env)
-               if(print.aetype.header) 
+               if(print.aetype.header)
 									rownames(sstbl$table)[4+n.grade] = 'section'
                sstbl
              })
@@ -1080,7 +1081,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       stop('Sorting can only apply to `pt`, `ep`, and `p`')
   }
 
-   #strip tibble class
+   #strip tibble class as it might cause problem
  	ae_data <- as.data.frame(ae_data)
   fullid_data <- as.data.frame(fullid_data)
   group_data <- as.data.frame(group_data)
@@ -1089,19 +1090,24 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   # Check if grade.var is not NULL and has any NA values - hungtt
   if (!is.null(grade.var) && any(is.na(ae_data[[grade.var]]))) {
     # Replace NA values with "Grade NA"
-    ae_data[[grade.var]][is.na(ae_data[[grade.var]])] <- "Grade NA"
+    ae_data[[grade.var]][is.na(ae_data[[grade.var]])] <- "Grade N/A"
   }
-  # Check if any aetype.var is NA and replace with "NA"
-  for (var in aetype.var) {
-		lbl = attr(ae_data[[var]], 'label')
-		ae_data[[var]] = as.character(ae_data[[var]])
-		ae_data[[var]] = structure(ae_data[[var]], label=lbl)
-    if (any(is.na(ae_data[[var]]))) {
-      #if (is.factor(ae_data[[var]]))
-          #levels(ae_data[[var]]) <- c(levels(ae_data[[var]]), na.text )
 
-      ae_data[[var]][is.na(ae_data[[var]])] <- na.text
-    }
+  # If there is a designated name to aetype.var, populate that into the data
+  if (!is.null(names(aetype.var))){
+    attr(ae_data[, aetype.var[[1]]], 'label') <- names(aetype.var)[[1]]
+    aetype.var <- aetype.var[[1]]
+  }
+
+  # Check if any aetype.var is NA and replace with "NA"
+  lbl = attr(ae_data[[aetype.var]], 'label')
+  ae_data[[aetype.var]] = as.character(ae_data[[aetype.var]])
+  ae_data[[aetype.var]] = structure(ae_data[[aetype.var]], label=lbl)
+  if (any(is.na(ae_data[[aetype.var]]))) {
+    #if (is.factor(ae_data[[var]]))
+    #levels(ae_data[[var]]) <- c(levels(ae_data[[var]]), na.text )
+
+    ae_data[[aetype.var]][is.na(ae_data[[aetype.var]])] <- na.text
   }
 
   ## format study arms
@@ -1122,23 +1128,23 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
 
   replace_with_var_names <- function(df, var, aetype_var) {
   # Identify rows where aetype_var is not "NA"
-  not_na_rows <- df[[aetype_var]] != na.text
+    not_na_rows <- df[[aetype_var]] != na.text
 
-  df[[aetype_var]] <- as.character(df[[aetype_var]])
-  # Replace values with variable names or labels only where not "NA"
-  if (!is.null(names(aetype_var))){
-    df[[aetype_var]][not_na_rows] <- names(aetype_var)
-  } else if (!is.null(attr(df[[var]], "label"))) {
-    df[[aetype_var]][not_na_rows] <- attr(df[[var]], "label")  # Use label if available
-  } else {
-    df[[aetype_var]][not_na_rows] <- var  # Fallback to default label
+    # df[[aetype_var]] <- as.character(df[[aetype_var]])
+    # Replace values with variable names or labels only where not "NA"
+    if (!is.null(attr(df[[var]], "label"))) {
+      df[[aetype_var]][not_na_rows] <- attr(df[[var]], "label")  # Use label if available
+    } else {
+      df[[aetype_var]][not_na_rows] <- var  # Fallback to default label
+    }
+
+    # Delete rows where aetype_var is "NA"
+    df <- df[not_na_rows, , drop = FALSE]
+
+    return(df)
   }
 
-  # Delete rows where aetype_var is "NA"
-  df <- df[not_na_rows, , drop = FALSE]
-
-  return(df)
-}
+  # browser()
 
   # Example usage with ae_any data frame mutation
   ae_any <- ae_data  # Assuming ae_data is your original data frame
@@ -1147,8 +1153,8 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
     replace_with_var_names(ae_any, aetype.var, aetype.var) else NULL
   ae_any[, aetype.var] <- "Any selected adverse event"
   # Combine original and mutated data (assuming ae_data and ae_any exist)
-  ae <- if(print.aetype.header) 
-		rbind(ae_data, ae_any, mutated_data) else 
+  ae <- if(print.aetype.header)
+		rbind(ae_data, ae_any, mutated_data) else
 		rbind(ae_data, ae_any)
 
   # Extract grades of ae (assuming grade.var exists)
@@ -1173,9 +1179,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   aetype_lev.raw <- unique(as.character(ae_data[[aetype.var]]))
 
   # Check if aetype.var has a label attribute
-  if (!is.null(names(aetype.var))){
-    aetype.var.label <- names(aetype.var)
-  } else if (!is.null(attr(ae_data[[aetype.var]], "label"))) {
+  if (!is.null(attr(ae_data[[aetype.var]], "label"))) {
     aetype.var.label <- attr(ae_data[[aetype.var]], "label")
   } else {
     aetype.var.label <- aetype.var
