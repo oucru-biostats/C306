@@ -7,6 +7,7 @@
 sstable.survcomp.subgroup(
   base.model,
   subgroup.model,
+  overall.model,
   data,
   time = Inf,
   reference.arm = c("B", "A"),
@@ -19,6 +20,7 @@ sstable.survcomp.subgroup(
   footer = NULL,
   flextable = TRUE,
   bg = "#F2EFEE",
+  overall = TRUE,
   ...
 )
 }
@@ -26,6 +28,8 @@ sstable.survcomp.subgroup(
 \item{base.model}{a formula from which sub-group specific estimates are extracted (!! arm must be the first covariate in the model).}
 
 \item{subgroup.model}{a formula of the form "~subgrouping.variable1+subgrouping.variable2" (!! subgrouping.variable must be factors and there should be nothing on the left-hand side of the formula).}
+
+\item{overall.model}{an optional one-sided formula for additional terms for overall population only}
 
 \item{data}{a data frame to fit the survival model.}
 
@@ -52,9 +56,9 @@ If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.}
 
 \item{bg}{[\code{#F2EFEE}] a character specifies color of the odd rows in the body of flextable-type table.}
 
-\item{...}{arguments that are passed to sstable.survcomp}
+\item{overall}{[\code{TRUE}] where to print overall model}
 
-\item{overall.model}{an optional one-sided formula for additional terms for overall population only}
+\item{...}{arguments that are passed to sstable.survcomp}
 
 \item{add.risk}{[\code{TRUE}] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.}
 
@@ -71,8 +75,6 @@ If CoxPH is preferred, used Surv(t, ev == 'event-of-interest') on the LHS.}
  For compare.method = 'rmst', args are fed to \code{\link[eventglm:rmeanglm]{rmeanglm}} ,
  `type`: [\code{diff}] a string, "diff" for difference in RMST, "ratio' for ratio of RMST, "lost.diff" for difference in restricted mean time lost (RMTL, = -diff), and "lost.ratio" for ratio of RMTL
  other optional args include: model.censoring, formula.censoring, ipcw.method. See \code{\link[eventglm:rmeanglm]{rmeanglm}} for more details.}
-
-\item{overall}{[\code{TRUE}] where to print overall model}
 }
 \value{
 a flextable-type table or a list with values/headers/footers

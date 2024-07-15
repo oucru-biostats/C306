@@ -25,7 +25,8 @@ sstable.ae(
   B = 2000,
   workspace = 1e+06,
   hybrid = FALSE,
-  print.aetype.header = length(aetype.var) > 1,
+  print.aetype.header = length(aetype.var) > 1 | any(length(names(aetype.var)) > 0) |
+    any(isTRUE(nchar(names(aetype.var)) > 0)),
   na.text = "(Missing)",
   footer = NULL,
   flextable = TRUE,
