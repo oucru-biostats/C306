@@ -122,6 +122,10 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   #strip tibble class as it might cause problem
   ae_data <- as.data.frame(ae_data)
   fullid_data <- as.data.frame(fullid_data)
+  if (!is.null(group.var)) {
+    if (is.null(group_data)) {
+      group_data <- unique(ae_data[,c(aetype.var, group.var)])
+    }}
   group_data <- as.data.frame(group_data)
   is.grouped <- !missing(group.var)
 
@@ -269,10 +273,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   ## categorizing ae into groups
   ## author: trinhdhk
   if (!is.null(group.var)) {
-    if (is.null(group_data)) {
-      group_data <- unique(ae_data[,c(aetype.var, group.var)])
-    }
-    group_data[[group.var]] <- replace_na(as.character(group_data[[group.var]]), 'Uncategorised')
+       group_data[[group.var]] <- replace_na(as.character(group_data[[group.var]]), 'Uncategorised')
     if (!is.factor(group_data[, group.var])) group_data[, group.var] <- as.factor(group_data[, group.var])
     group_data <- group_data[, c(aetype.var, group.var)]
     group_data[,aetype.var] <- as.character(group_data[,aetype.var])
