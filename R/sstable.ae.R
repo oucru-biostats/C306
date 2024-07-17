@@ -117,17 +117,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       stop('Sorting can only apply to `pt`, `ep`, and `p`')
   }
 
-  ## categorizing ae into groups
-  ## author: trinhdhk
-  if (!is.null(group.var)) {
-    if (is.null(group_data)) {
-      group_data <- unique(ae_data[,c(aetype.var, group.var)])
-    }
-    group_data[[group.var]] <- replace_na(as.character(group_data[[group.var]]), 'Uncategorised')
-    if (!is.factor(group_data[, group.var])) group_data[, group.var] <- as.factor(group_data[, group.var])
-    group_data <- group_data[, c(aetype.var, group.var)]
-    group_data[,aetype.var] <- as.character(group_data[,aetype.var])
-    names(group_data) <- c(aetype.var, '.tmp.group')
+
 
   #strip tibble class as it might cause problem
   ae_data <- as.data.frame(ae_data)
@@ -276,7 +266,17 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   ## get the aehead -trinhdhk
   ae_value.head <- as.data.frame(ae_value, stringsAsFactors = FALSE) %>% filter(!aename %in% aetype_lev.raw)
 
-
+  ## categorizing ae into groups
+  ## author: trinhdhk
+  if (!is.null(group.var)) {
+    if (is.null(group_data)) {
+      group_data <- unique(ae_data[,c(aetype.var, group.var)])
+    }
+    group_data[[group.var]] <- replace_na(as.character(group_data[[group.var]]), 'Uncategorised')
+    if (!is.factor(group_data[, group.var])) group_data[, group.var] <- as.factor(group_data[, group.var])
+    group_data <- group_data[, c(aetype.var, group.var)]
+    group_data[,aetype.var] <- as.character(group_data[,aetype.var])
+    names(group_data) <- c(aetype.var, '.tmp.group')
 
     if (!is.null(group.var.priority)) {
       # Reorder group.var based on group.var.priority
