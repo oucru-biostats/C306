@@ -124,8 +124,25 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   fullid_data <- as.data.frame(fullid_data)
   if (!is.null(group.var)) {
     if (is.null(group_data)) {
-      group_data <- unique(ae_data[,c(aetype.var, group.var)])
-    }}
+                group_data <- unique(ae_data[,c(aetype.var, group.var)])
+               name_counts <- table(group_data[[aetype.var]])
+               misclassified_names <- names(name_counts[name_counts > 1])
+               misclassifications_list <- list()
+               warning_messages <- c()
+               options (warn = 1)
+               if (length(misclassified_names) > 0) {
+                 cat("Misclassifications found:\n")
+                 for (name in misclassified_names) {
+                   cat("Name:", name, "\n")
+                   ae.soc <- unique(group_data[group_data[[aetype.var]] == name, group.var])
+                   cat("Wrong classes:", paste(ae.soc, collapse = ", "), "\n")
+                   misclassifications_list[[name]] <- ae.soc
+                   warning_messages <- c(warning_messages, paste(name, ":", paste(ae.soc, collapse = ", "), ";"))
+                 }
+                 warning_message <- paste("Adverse events are being classified into two different SOCs.", paste(warning_messages, collapse = " "), sep = "\n")
+                 warning(warning_message)}
+              }}
+
   group_data <- as.data.frame(group_data)
   is.grouped <- !missing(group.var)
 
