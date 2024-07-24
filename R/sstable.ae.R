@@ -290,16 +290,31 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   ## categorizing ae into groups
   ## author: trinhdhk
   if (!is.null(group.var)) {
-       group_data[[group.var]] <- replace_na(as.character(group_data[[group.var]]), 'Uncategorised')
+    # Check if group.var is a factor and update levels
+    if (is.factor(group_data[[group.var]])) {
+      # Get current levels and add "Uncategorised"
+      new_levels <- c(levels(group_data[[group.var]]), 'Uncategorised')
+
+      # Update factor levels
+      group_data[[group.var]] <- factor(group_data[[group.var]], levels = new_levels)
+
+      # Replace NA with "Uncategorised"
+      group_data[[group.var]] <- replace_na(as.character(group_data[[group.var]]), 'Uncategorised')
+
+      # Convert back to factor
+      group_data[[group.var]] <- factor(group_data[[group.var]], levels = new_levels)
+    } else {
+      # Handle case where group.var is not a factor
+      group_data[[group.var]] <- replace_na(as.character(group_data[[group.var]]), 'Uncategorised')
+    }
     if (!is.factor(group_data[, group.var])) group_data[, group.var] <- as.factor(group_data[, group.var])
     group_data <- group_data[, c(aetype.var, group.var)]
     group_data[,aetype.var] <- as.character(group_data[,aetype.var])
     names(group_data) <- c(aetype.var, '.tmp.group')
 
     if (!is.null(group.var.priority)) {
-      # Reorder group.var based on group.var.priority
       group_data <- group_data %>%
-        mutate(.tmp.group = factor(.tmp.group, levels = c(group.var.priority, setdiff(unique(.tmp.group), group.var.priority)), ordered = TRUE))
+        mutate(.tmp.group = factor(.tmp.group, levels = c(group.var.priority, setdiff(levels(.tmp.group), group.var.priority)), ordered = TRUE))
     }
     # } else {
     #   ## - create a fake grouping
