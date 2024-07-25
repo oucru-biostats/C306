@@ -84,7 +84,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
     tbl2 <- tbl2p[[1]]
 
     # tbl2$table <- tbl2$table[-c(1:(3+n.grade)),]
-    for (tbl3 in tbl2p[-1]) tbl2 <- .do_rbind(tbl2, tbl3, header=c(1:(3+n.grade)))
+    for (tbl3 in tbl2p[-1]) tbl2 <- ._do_rbind(tbl2, tbl3, header=c(1:(3+n.grade)))
     # browser()
     out <- ._do_rbind(tbl1, tbl2, header=c(1:(3+n.grade)))
     # rownames(out)[c(3,4,5,8)] <- 'section'
