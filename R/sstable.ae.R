@@ -135,7 +135,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
                  for (name in misclassified_names) {
                    cat("Name:", name, "\n")
                    ae.soc <- unique(group_data[group_data[[aetype.var]] == name, group.var])
-                   cat("Wrong classes:", paste(ae.soc, collapse = ", "), "\n")
+                   cat("In classes:", paste(ae.soc, collapse = ", "), "\n")
                    misclassifications_list[[name]] <- ae.soc
                    warning_messages <- c(warning_messages, paste(name, ":", paste(ae.soc, collapse = ", "), ";"))
                  }
