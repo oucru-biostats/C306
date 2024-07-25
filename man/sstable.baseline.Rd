@@ -14,7 +14,10 @@ sstable.baseline(
   cont = NULL,
   cate = NULL,
   fullfreq = TRUE,
-  digits = 1,
+  digits.numeric = c("mean(x, na.rm = TRUE) > 10 ~ 0",
+    "mean(x, na.rm=T) > 1 & mean(x, na.rm=T) <= 10 ~ 1", "mean(x, na.rm=T) <= 1 ~ 2"),
+  digits.nonnumeric = c("!is.numeric(x) ~ 0"),
+  digits.name = NULL,
   test = FALSE,
   pdigits = 3,
   pcutoff = 1e-04,
@@ -51,7 +54,11 @@ If formula is in the form of x+y ~ a|z, the function will summary z with respect
 
 \item{cate}{a vector specifies whether each row variables is categorical.}
 
-\item{digits}{a number specifies number of significant digits for numeric statistics.}
+\item{digits.numeric}{a list of characters to specify the numerical conditions for how many decimal places of summarizing statistics will display}
+
+\item{digits.nonnumeric}{a list of characters to specify the nonnumerical conditions for how many decimal places of summarizing statistics will display}
+
+\item{digits.name}{a list of names of variables to specify for how many decimal places of summarizing statistics will display for those variable names}
 
 \item{test}{a logical value specifies whether a statistical test will be performed to compare between treatment arms.}
 

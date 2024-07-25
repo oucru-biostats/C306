@@ -16,7 +16,9 @@
 #' @param statistics a character specifies summary statistics for continuous row variables.
 #' @param cont a vector specifies whether each row variables is continuous.
 #' @param cate a vector specifies whether each row variables is categorical.
-#' @param digits a number specifies number of significant digits for numeric statistics.
+#' @param digits.numeric a list of characters to specify the numerical conditions for how many decimal places of summarizing statistics will display
+#' @param digits.nonnumeric a list of characters to specify the nonnumerical conditions for how many decimal places of summarizing statistics will display
+#' @param digits.name a list of names of variables to specify for how many decimal places of summarizing statistics will display for those variable names
 #' @param test a logical value specifies whether a statistical test will be performed to compare between treatment arms.
 #' @param pdigits a number specifies number of significant digits for p value.
 #' @param pcutoff a number specifies threshold value of p value to be displayed as "< pcutoff".
@@ -34,24 +36,28 @@
 #' @return a flextable-type table or a list with values/headers/footers
 #' @export
 sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, keepEmptyGroup = FALSE,
-                             statistics = "mean, median (Q1-Q3)", cont = NULL, cate = NULL, fullfreq = TRUE, digits = 1,
+                             statistics = "mean, median (Q1-Q3)", cont = NULL, cate = NULL, fullfreq = TRUE,
+                             digits.numeric = c("mean(x, na.rm = TRUE) > 10 ~ 0",
+                                                 "mean(x, na.rm=T) > 1 & mean(x, na.rm=T) <= 10 ~ 1",
+                                                 "mean(x, na.rm=T) <= 1 ~ 2"),
+                            digits.nonnumeric = c("!is.numeric(x) ~ 0"), digits.name = NULL,
                              test = FALSE, pdigits = 3, pcutoff = 0.0001,
                              chisq.test = FALSE, correct = FALSE, simulate.p.value = FALSE, B = 2000,
                              workspace = 1000000, hybrid = FALSE,
                              footer = NULL, flextable = FALSE, bg = "#F2EFEE", df = FALSE) {
-  
+
   ## get information from formula
   info <- sstable.formula(formula)
-  
+
   ## strip the tibble class which causes issue - trinhdhk
   data <- as.data.frame(data)
-  
+
   ## get data
   dat <- model.frame(info$formula0, data = data, na.action = NULL)
   x <- xlabel <- dat[, info$index$x, drop = FALSE]
   y <- if (info$index$y > 0) dat[, info$index$y] else NULL
   z <- if (info$index$z > 0) dat[, info$index$z] else NULL
-  
+
   ## y must be categorical variable
   if (!is.null(y)) {
     if (all(!c("character", "factor", "logical") %in% class(y)) |
@@ -69,20 +75,20 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   } else {
     y <- factor(rep("Total", nrow(dat)))
   }
-  
+
   #browser()
-  
+
   ## determine type of x (argument: cont and cate)
   varlist <- getvar(formula) #hungtt
   varlist <- varlist[-length(varlist)] #remove the y name
-  
+
   # Convert varlist, cont, and cate to lowercase for case-insensitive comparison
   varlist_lower <- tolower(varlist)
   cont_lower <- tolower(cont)
   cate_lower <- tolower(cate)
-  
+
   continuous <- ifelse(varlist_lower %in% cont_lower, TRUE, ifelse(varlist_lower %in% cate_lower, FALSE, NA)) #assign var type
-  
+
   continuous <- sapply(1:ncol(x), function(i) {
     out <- ifelse(is.na(continuous[i]),
                   ifelse(any(c("factor", "character", "logical") %in% class(x[, i])) |
@@ -90,19 +96,19 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
                   continuous[i])
     return(out)
   })
-  
-  
+
+
   for (i in (1:ncol(x))) {
     if (continuous[i] == FALSE & !is.factor(x[, i])) x[, i] <- factor(x[, i], levels = sort(unique(na.omit(x[, i]))))
   }
-  
+
   ## if z exists, x must be categorical
   if (!is.null(z) & any(continuous == TRUE)) stop("Row-wise variable must be categorical when third dimension variable exists !!!")
-  
+
   ## if use by-row layout, x must be categorical
   #browser()
   if (bycol == FALSE & any(sapply(1:ncol(x), function(i) is.factor(x[,i])) == FALSE)) stop("Row-wise variable must be categorical in by-row layout !!!")
-  
+
   ## determine type of z
   if (!is.null(z)) {
     zdiscrete <- any(c("factor", "character", "logical") %in% class(unclass(z))) |
@@ -110,15 +116,103 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
     # if (zcontinuous == FALSE & !is.factor(z)) z <- factor(z, levels = unique(na.omit(z)))
     if (zdiscrete) z <- factor(z, levels = unique(na.omit(z)))
   }
-  
+
   # browser()
-  ## digits
-  if (length(digits) == 1) {
-    digits <- rep(digits, ncol(x))
-  } else {
-    if (length(digits) != ncol(x)) stop("digits argument must have length 1 or similar length as number of row-wise variables !!!")
+  ## digits - hungtt
+  # Function to convert formulas and results to the desired format
+  convert_to_function_list <- function(formula_list_numeric, formula_list_non_numeric,
+                                       formula_list_name) {
+    # Helper function to parse and convert a single formula and result
+    convert_single <- function(fml_result) {
+      # Split the formula and result
+      parts <- strsplit(fml_result, "~")[[1]]
+      formula_str <- trimws(parts[1])
+      result <- as.numeric(trimws(parts[2]))
+
+      # Create the function from the formula string
+      formula_function <- eval(parse(text = paste0("function(x) { ", formula_str, " }")))
+
+      # Return the list containing the function and result
+      list(formula_function, result)
+    }
+
+    # Apply the conversion to each element in the list for numeric criteria
+    converted_list_numeric <- lapply(formula_list_numeric, convert_single)
+
+    # Apply the conversion to each element in the list for non-numeric criteria
+    converted_list_non_numeric <- lapply(formula_list_non_numeric, convert_single)
+
+    # Apply the conversion to each element in the list for non-numeric criteria
+    converted_list_name <- lapply(formula_list_name, convert_single)
+
+
+    return(list(numeric = converted_list_numeric, non_numeric = converted_list_non_numeric,
+                digits_name = converted_list_name))
   }
-  
+
+
+  digits.check <- function(df, criteria_results_numeric, criteria_results_non_numeric,
+                           criteria_results_name) {
+    # Initialize a vector to store the results
+    digits <- numeric(ncol(df))
+
+  # Iterate over each variable in the data frame
+  for (i in seq_along(df)) {
+    variable_name <- colnames(df)[i]
+    variable <- df[[i]]
+
+    # Create a variable named after the column
+    assign(variable_name, variable, envir = .GlobalEnv)
+
+      # Determine if the variable is numeric or not
+      if (is.numeric(variable)) {
+        criteria_results <- criteria_results_numeric
+      } else {
+        criteria_results <- criteria_results_non_numeric
+      }
+
+      # Assume that we set `matched` to FALSE initially
+      matched <- FALSE
+
+      # Check each criterion/result pair for the appropriate type
+      for (criterion_result in criteria_results) {
+        criterion <- criterion_result[[1]]
+        result <- criterion_result[[2]]
+
+        # Apply the criterion function to the variable
+        if (criterion(variable)) {
+          digits[i] <- result
+          matched <- TRUE
+          break
+        }
+      }
+
+      criteria_results <- criteria_results_name
+      # Check each variable if it is listed in the digits.name
+      for (criterion_result in criteria_results) {
+        criterion <- criterion_result[[1]]
+        result <- criterion_result[[2]]
+
+        # Apply the criterion function to the variable
+        if (criterion(variable_name)) {
+          digits[i] <- result
+          matched <- TRUE
+          break
+        }
+      }
+
+      # If no criteria matched, set to 0
+      if (!matched) {
+        digits[i] <- 0
+      }
+    }
+
+    return(digits)
+  }
+
+  criteria <- convert_to_function_list(digits.numeric, digits.nonnumeric, digits.name)
+  digits <- digits.check(x, criteria[[1]], criteria[[2]], criteria[[3]])
+
   ## if pooledGroup
   if (pooledGroup) {
     x <- rbind(x, x)
@@ -129,30 +223,30 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   # else{
   #   z <- if (!is.null(z)) factor(z, levels = unique(na.omit(z))) else NULL
   # }
-  
+
   ## get variable name
   varname <- if (ncol(xlabel) == 1) getlabel(xlabel[, 1]) else getlabel(xlabel)
-  
-  
+
+
   # Initialize an empty vector to store labels or variable names
   label_list <- character(length(varlist))
-  
+
   # Loop through the variables in varlist
   for (i in seq_along(varlist)) {
     var_name <- varlist[i]
-    
+
     # Retrieve the variable label if available
     var_label <- attr(data[[var_name]], "label")
-    
+
     # Check if the variable has a label or use the variable name
-    
+
     if (!is.null(var_label) && var_label != "") {
       label_list[i] <- var_label
     } else {
       label_list[i] <- var_name
     }
   }
-  
+
   ## get summary
   value <- do.call(rbind,
                    lapply(1:ncol(x), function(i) {
@@ -165,7 +259,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
                                            workspace = workspace, hybrid = hybrid,
                                            simulate.p.value = simulate.p.value, B = B)
                    }))
-  
+
   ## indication of unestimatable values
   value_dim <- dim(value)
   value <- apply(value, 2, function(x) ifelse(is.na(x) | x %in% c("NA (NA, NA)", "0/0 (NaN%)"), "-", x))
@@ -290,8 +384,8 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   # }
   # ## output
   # if (!flextable) class(tab) <- c('ss_baseline','ss_obj')
-  
-  
+
+
   # add option to call dataframe before adding header, footer -hungtt
   if (df) { tab <- value}
   else { tab <- sstable.baseline.edit(value = value, formula = formula, data =data, bycol = bycol, pooledGroup = pooledGroup , keepEmptyGroup = keepEmptyGroup,
@@ -300,7 +394,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
                                       chisq.test = chisq.test, correct = correct, simulate.p.value = simulate.p.value, B = B,
                                       workspace = workspace, hybrid = hybrid, footer = footer, flextable = flextable, bg = bg)
   }
-  
+
   return (tab)
 }
 
@@ -309,7 +403,7 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
                                   statistics = "mean, median (Q1-Q3)", continuous = NA, fullfreq = TRUE, test = FALSE,
                                   digits = 1, pdigits = pdigits, pcutoff = 0.0001, chisq.test = FALSE, correct = FALSE, workspace = 1000000,
                                   hybrid = FALSE, simulate.p.value = FALSE, B = 2000) {
-  
+
   # ## functions to make the summary value of different statistics in different rows -hungtt
   # mycont.summary <- function(x, y, z) {
   #   ngroup <- length(levels(y))
@@ -354,33 +448,33 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
   #       }
   #     }
   #   }
-  
+
   mycont.summary <- function(x, y, z) {
     ngroup <- length(levels(y))
-    
+
     if (is.null(z)) {
       summarystat.nice <- by(unclass(x), y, contSummary, statistics = statistics, digits = digits, n = FALSE)
       n <- table(y[!is.na(x)])
-      
+
       result <- matrix("", ncol = ngroup * 2 + 1, nrow = 1)
       result[1, seq(2, ncol(result), by = 2)] <- n
-      
+
       # Check if summarystat.nice has more than one value per row and flatten it if necessary
       if (length(summarystat.nice) > 1) {
         result[1, seq(3, ncol(result), by = 2)] <- unlist(lapply(summarystat.nice, function(x) paste(x, collapse = ", ")))
       } else {
         result[1, seq(3, ncol(result), by = 2)] <- unlist(summarystat.nice)
       }
-      
+
     } else {
       summarystat.nice <- by(unclass(z), list(x, y), contSummary, statistics = statistics, digits = digits, n = FALSE)
       n <- table(x, y)
-      
+
       result <- matrix("", ncol = ngroup * 2 + 1, nrow = length(levels(x)) + 1)
       result[1, seq(2, ncol(result), by = 2)] <- apply(n, 2, sum)
       result[2:nrow(result), seq(2, ncol(result), by = 2)] <- n
       result[2:nrow(result), 1] <- paste0("- ", levels(x), " (n = ", apply(n, 1, sum), ")")
-      
+
       # Check if summarystat.nice has more than one value per row and flatten it if necessary
       if (length(summarystat.nice) > 1) {
         result[2:nrow(result), seq(3, ncol(result), by = 2)] <- unlist(lapply(summarystat.nice, function(x) paste(x, collapse = ", ")))
@@ -388,7 +482,7 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
         result[2:nrow(result), seq(3, ncol(result), by = 2)] <- unlist(summarystat.nice)
       }
     }
-    
+
     if (test == TRUE & ngroup > 1) {
       # overall Kruskal-Wallis test for group differences
       if (is.null(z)) {
@@ -412,10 +506,10 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
         })
         result <- cbind(result, c("", pval))
       }
-      
+
     }
-    
-    
+
+
     # if (test == TRUE & ngroup > 1) {
     #   # overall Kruskal-Wallis test for group differences
     #   if (is.null(z)) {
@@ -443,11 +537,11 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
     # }
     return(result)
   }
-  
+
   mycat.summary <- function(x, y, z, fullfreq = fullfreq) {
     ngroup <- length(levels(y))
     result <- matrix("", ncol = ngroup * 2 + 1, nrow = length(levels(x)) + 1)
-    
+
     if (is.null(z)) {
       ta <- table(x, y)
       n <- if (bycol) {
@@ -460,7 +554,7 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
       } else {
         unclass(ta/rep(n, ngroup))
       }
-      
+
       ta.nice <- matrix(paste0(" (", formatC(100 * unclass(ta.prop), digits, format = "f"), "%)"),
                         nrow = nrow(ta), ncol = ncol(ta))
       result[2:nrow(result), 1] <- paste0("- ", levels(x))
@@ -472,7 +566,7 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
         } else {
           result[2:nrow(result), seq(3, ncol(result), by = 2)] <- paste0(ta, ta.nice)
         }
-        
+
       } else {
         result[2:nrow(result), 1] <- paste0(result[2:nrow(result), 1], " (n=", n, ")")
         if (fullfreq) {
@@ -480,7 +574,7 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
         } else {
           result[2:nrow(result), seq(3, ncol(result), by = 2)] <- paste0(ta, ta.nice)
         }
-        
+
       }
     } else {
       tn <- table(x, y)
@@ -500,7 +594,7 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
       result[1, seq(2, ncol(result), by = 2)] <- apply(tn, 2, sum)
       result[2:nrow(result), seq(2, ncol(result), by = 2)] <- tn
     }
-    
+
     if (test == TRUE & ngroup > 1) {
       if (is.null(z)) {
         m <- 1:(length(x) * (1 - 0.5 * as.numeric(pooledGroup)))
@@ -543,7 +637,7 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
     }
     result
   }
-  
+
   if (is.null(z)) {
     out <- if (continuous) {
       mycont.summary(x = x, y = y, z = NULL)
@@ -557,9 +651,9 @@ sstable.baseline.each <- function(varname, label_list, x, y, z, bycol = TRUE, po
       mycont.summary(x = x, y = y, z = z)
     }
   }
-  
-  
-  
+
+
+
   out[1, 1] <- label_list
   return(out)
 }
