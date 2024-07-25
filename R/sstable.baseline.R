@@ -15,7 +15,7 @@
 #' @param keepEmptyGroup a logical value specifying whether should keep empty groups
 #' @param statistics a character specifies summary statistics for continuous row variables.
 #' @param cont a vector specifies whether each row variables is continuous.
-#' @param cate a vector specifies whether each row variables is categorical.
+#' @param cat a vector specifies whether each row variables is categorical.
 #' @param digits.numeric a list of characters to specify the numerical conditions for how many decimal places of summarizing statistics will display
 #' @param digits.nonnumeric a list of characters to specify the nonnumerical conditions for how many decimal places of summarizing statistics will display
 #' @param digits.name a list of names of variables to specify for how many decimal places of summarizing statistics will display for those variable names
@@ -36,7 +36,7 @@
 #' @return a flextable-type table or a list with values/headers/footers
 #' @export
 sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, keepEmptyGroup = FALSE,
-                             statistics = "mean, median (Q1-Q3)", cont = NULL, cate = NULL, fullfreq = TRUE,
+                             statistics = "mean; median (Q1-Q3)", cont = NULL, cat = NULL, fullfreq = FALSE,
                              digits.numeric = c("mean(x, na.rm = TRUE) > 10 ~ 0",
                                                  "mean(x, na.rm=T) > 1 & mean(x, na.rm=T) <= 10 ~ 1",
                                                  "mean(x, na.rm=T) <= 1 ~ 2"),
@@ -85,7 +85,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   # Convert varlist, cont, and cate to lowercase for case-insensitive comparison
   varlist_lower <- tolower(varlist)
   cont_lower <- tolower(cont)
-  cate_lower <- tolower(cate)
+  cate_lower <- tolower(cat)
 
   continuous <- ifelse(varlist_lower %in% cont_lower, TRUE, ifelse(varlist_lower %in% cate_lower, FALSE, NA)) #assign var type
 
@@ -389,7 +389,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   # add option to call dataframe before adding header, footer -hungtt
   if (df) { tab <- value}
   else { tab <- sstable.baseline.edit(value = value, formula = formula, data =data, bycol = bycol, pooledGroup = pooledGroup , keepEmptyGroup = keepEmptyGroup,
-                                      statistics = statistics, cont = cont, cate = cate, fullfreq = fullfreq, digits = digits,
+                                      statistics = statistics, cont = cont, cat = cat, fullfreq = fullfreq, digits = digits,
                                       test = test, pdigits = pdigits, pcutoff = pcutoff,
                                       chisq.test = chisq.test, correct = correct, simulate.p.value = simulate.p.value, B = B,
                                       workspace = workspace, hybrid = hybrid, footer = footer, flextable = flextable, bg = bg)

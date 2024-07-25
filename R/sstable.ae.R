@@ -506,8 +506,8 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
               "n patient refers to the number of patients with at least one event in each study arm.",
               if (any(value == "-")) "- : value cannot be estimated." else NULL,
               if (test) {paste("p-values were based on",
-                               ifelse(chisq.test == FALSE, "Fisher's exact test", "Chi-squared test if applicable and Fisher's exact test otherwise "),
-                               "comparing n patient between study arms for each type of adverse event.")} else NULL,
+                               ifelse(chisq.test == FALSE, "Fisher's exact test",
+                                      "Chi-squared test if applicable and Fisher if expected value under null <1"))} else NULL,
               footer)
 
   ### flextable
