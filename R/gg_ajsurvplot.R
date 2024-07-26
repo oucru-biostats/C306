@@ -127,6 +127,7 @@ tidy_competingevent <- function(formula, data, weights, subset, na.action, main.
 #' @export
 gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event, competing.event, facet.by = ~strata, count, id, timefix, ci=TRUE, monochrome = FALSE, ...){
 
+  dot <- list(...)
   gargs <- match.call()[-1]
   gargs <- as.list(gargs[setdiff(names(gargs), names(dot))])
   gargs$facet.by <- gargs$ci <- gargs$monochrome <- NULL
