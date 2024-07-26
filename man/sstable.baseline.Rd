@@ -10,10 +10,10 @@ sstable.baseline(
   bycol = TRUE,
   pooledGroup = FALSE,
   keepEmptyGroup = FALSE,
-  statistics = "mean, median (Q1-Q3)",
+  statistics = "mean; median (Q1-Q3)",
   cont = NULL,
-  cate = NULL,
-  fullfreq = TRUE,
+  cat = NULL,
+  fullfreq = FALSE,
   digits.numeric = c("mean(x, na.rm = TRUE) > 10 ~ 0",
     "mean(x, na.rm=T) > 1 & mean(x, na.rm=T) <= 10 ~ 1", "mean(x, na.rm=T) <= 1 ~ 2"),
   digits.nonnumeric = c("!is.numeric(x) ~ 0"),
@@ -30,7 +30,7 @@ sstable.baseline(
   footer = NULL,
   flextable = FALSE,
   bg = "#F2EFEE",
-  df = FALSE
+  matrix.raw = FALSE
 )
 }
 \arguments{
@@ -52,7 +52,9 @@ If formula is in the form of x+y ~ a|z, the function will summary z with respect
 
 \item{cont}{a vector specifies whether each row variables is continuous.}
 
-\item{cate}{a vector specifies whether each row variables is categorical.}
+\item{cat}{a vector specifies whether each row variables is categorical.}
+
+\item{fullfreq}{a logical value specifies whether to show total frequency as a denominator}
 
 \item{digits.numeric}{a list of characters to specify the numerical conditions for how many decimal places of summarizing statistics will display}
 

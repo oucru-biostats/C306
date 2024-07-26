@@ -16,6 +16,7 @@
 #' @param statistics a character specifies summary statistics for continuous row variables.
 #' @param cont a vector specifies whether each row variables is continuous.
 #' @param cat a vector specifies whether each row variables is categorical.
+#' @param fullfreq a logical value specifies whether to show total frequency as a denominator
 #' @param digits.numeric a list of characters to specify the numerical conditions for how many decimal places of summarizing statistics will display
 #' @param digits.nonnumeric a list of characters to specify the nonnumerical conditions for how many decimal places of summarizing statistics will display
 #' @param digits.name a list of names of variables to specify for how many decimal places of summarizing statistics will display for those variable names

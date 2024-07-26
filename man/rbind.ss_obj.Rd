@@ -9,11 +9,11 @@
 \usage{
 \method{rbind}{ss_obj}(tbl1, tbl2, footer = NULL, ...)
 
-\method{rbind}{ss_ae}(tbl1, tbl2, footer = NULL)
+\method{rbind}{ss_ae}(tbl1, tbl2, header = 1:3, footer)
 
-\method{rbind}{ss_survcomp}(tbl1, tbl2, footer = NULL)
+\method{rbind}{ss_survcomp}(tbl1, tbl2, header = 1:3, footer)
 
-\method{rbind}{ss_baseline}(tbl1, tbl2, footer = NULL)
+\method{rbind}{ss_baseline}(tbl1, tbl2, header = 1:2, footer)
 }
 \arguments{
 \item{tbl1, tbl2, }{two object of class sstables of the same template. Only export for technical use.}
@@ -21,6 +21,8 @@
 \item{footer}{[NULL] default is the joint footer of two ss_tbl}
 
 \item{...}{args passed to the downstream method}
+
+\item{header}{define the number of row considered to be header area. This area is removed when rbind for tbl2}
 }
 \description{
 Row-binding two sstables
