@@ -672,6 +672,7 @@ as_sstable.subgroup_logist_summary <- function(x, include_footnote = TRUE, flext
 #' Row-binding two sstables
 #' @param tbl1,tbl2, two object of class sstables of the same template. Only export for technical use.
 #' @param footer [NULL] default is the joint footer of two ss_tbl
+#' @param header define the number of row considered to be header area. This area is removed when rbind for tbl2
 #' @param ... args passed to the downstream method
 #' @export
 rbind.ss_obj <- function(tbl1, tbl2, footer=NULL, ...){
@@ -693,35 +694,35 @@ rbind.ss_obj <- function(tbl1, tbl2, footer=NULL, ...){
 #' @rdname rbind.ss_obj
 #' @method rbind ss_ae
 #' @export
-rbind.ss_ae <- function(tbl1, tbl2, footer=NULL){
-  if (!all.equal(tbl1$footer, tbl2$footer) & is.null(footer))
+rbind.ss_ae <- function(tbl1, tbl2, header=1:3, footer){
+  if (!isTRUE(all.equal(tbl1$footer, tbl2$footer)) & missing(footer))
     stop('Two footers mismatched. Perhaps two tbl are using different config? \n
          To ignore this, set a specific footer.')
-  out <- ._do_rbind(tbl1, tbl2, header=1:3)
-  if (!is.null(footer)) out$footer <- footer
+  out <- ._do_rbind(tbl1, tbl2, header=header)
+  if (!missing(footer)) out$footer <- footer
   out
 }
 
 #' @rdname rbind.ss_obj
 #' @method rbind ss_survcomp
 #' @export
-rbind.ss_survcomp <- function(tbl1, tbl2, footer=NULL){
-  if (!all.equal(tbl1$footer, tbl2$footer) & is.null(footer))
+rbind.ss_survcomp <- function(tbl1, tbl2, header=1:3, footer){
+  if (!isTRUE(all.equal(tbl1$footer, tbl2$footer)) & missing(footer))
     stop('Two footers mismatched. Perhaps two tbl are using different config? \n
          To ignore this, set a specific footer.')
-  out <- ._do_rbind(tbl1, tbl2, header=1:3)
-  if (!is.null(footer)) out$footer <- footer
+  out <- ._do_rbind(tbl1, tbl2, header=header)
+  if (!missing(footer)) out$footer <- footer
   out
 }
 
 #' @rdname rbind.ss_obj
 #' @method rbind ss_baseline
 #' @export
-rbind.ss_baseline <- function(tbl1, tbl2, footer=NULL){
-  if (!all.equal(tbl1$footer, tbl2$footer) & is.null(footer))
+rbind.ss_baseline <- function(tbl1, tbl2, header=1:2, footer){
+  if (!isTRUE(all.equal(tbl1$footer, tbl2$footer)) & missing(footer))
     stop('Two footers mismatched. Perhaps two tbl are using different config? \n
          To ignore this, set a specific footer.')
-  out <- ._do_rbind(tbl1, tbl2, header=1)
-  if (!is.null(footer)) out$footer <- footer
+  out <- ._do_rbind(tbl1, tbl2, header=header)
+  if (!missing(footer)) out$footer <- footer
   out
 }
