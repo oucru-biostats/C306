@@ -44,7 +44,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
                              test = FALSE, pdigits = 3, pcutoff = 0.0001,
                              chisq.test = FALSE, correct = FALSE, simulate.p.value = FALSE, B = 2000,
                              workspace = 1000000, hybrid = FALSE,
-                             footer = NULL, flextable = FALSE, bg = "#F2EFEE", df = FALSE) {
+                             footer = NULL, flextable = FALSE, bg = "#F2EFEE", matrix.raw = FALSE) {
 
   ## get information from formula
   info <- sstable.formula(formula)
@@ -264,7 +264,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
   value_dim <- dim(value)
   value <- apply(value, 2, function(x) ifelse(is.na(x) | x %in% c("NA (NA, NA)", "0/0 (NaN%)"), "-", x))
   dim(value) <- value_dim
-  value <- as.data.frame(value)
+
   # ## output - old code, if want to reverse to old code, uncomment this code, remove df argument in main function
   #and delete the corresponding code below
   # ### header
@@ -387,7 +387,7 @@ sstable.baseline <- function(formula, data, bycol = TRUE, pooledGroup = FALSE, k
 
 
   # add option to call dataframe before adding header, footer -hungtt
-  if (df) { tab <- value}
+  if (matrix.raw) { tab <- value}
   else { tab <- sstable.baseline.edit(value = value, formula = formula, data =data, bycol = bycol, pooledGroup = pooledGroup , keepEmptyGroup = keepEmptyGroup,
                                       statistics = statistics, cont = cont, cat = cat, fullfreq = fullfreq, digits = digits,
                                       test = test, pdigits = pdigits, pcutoff = pcutoff,

@@ -12,6 +12,7 @@
 #' @param grade.var NULL or character specifies name of adverse event grade variable (exists in adverse event data).
 #' @param group.var a character specifies group (exists in adverse event data if group_data = NULL or group_data otherwise).
 #' @param arm.var a character specifies name of treatment arm variable (exists in treatment arm data).
+#' @param fullfreq a logical value specifies whether to show total frequency as a denominator
 #' @param sort.by
 #' An unquoted formula of sorting options.
 #'
@@ -23,6 +24,8 @@
 #' @param pcutoff a number specifies threshold value of p value to be displayed as "< pcutoff".
 #' @param chisq.test
 #' a logical value specifies whether Chi-squared test or Fisher's exact test will be used to compare between treatment arms.
+#' @param test.anyae.only  a logical value specifies whether a statistical test will be performed for all variable or only for any adverse events.
+#'
 #'
 #' Be aware that even when chisq.test==TRUE, if expected values are < 1, the later test will take over.
 #' @param correct a parameter for chisq.test().
@@ -43,12 +46,12 @@
 #' @export
 sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
                        aetype.var, grade.var = NULL,
-                       group.var = NULL, group.var.priority = NULL, arm.var, sort.by, digits = 0,
-                       test = TRUE, pdigits = 3, pcutoff = 0.001, chisq.test = FALSE, correct = FALSE,
+                       group.var = NULL, group.var.priority = NULL, arm.var, sort.by, digits = 0, fullfreq = FALSE,
+                       test = TRUE, test.anyae.only = TRUE, pdigits = 3, pcutoff = 0.001, chisq.test = TRUE, correct = FALSE,
                        simulate.p.value = FALSE, B = 2000, workspace = 1000000, hybrid = FALSE,
                        print.aetype.header =
                          length(aetype.var) > 1 | any(length(names(aetype.var)) > 0) | any(isTRUE(nchar(names(aetype.var)) > 0)),
-                       na.text = '(Missing)',
+                       na.text = '(Missing)', matrix.raw = FALSE,
                        footer = NULL, flextable = TRUE, bg = "#F2EFEE"){
   requireNamespace("dplyr")
   requireNamespace("tidyr")
@@ -278,8 +281,11 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   #browser()
   value <- matrix(ncol = nlevels(ae_arm$arm)*3, nrow = nlevels(ae_arm$aetype))
   value[, seq(from = 1, to = nlevels(ae_arm$arm)*2, by = 2)] <- episode_n
-  value[, seq(from = 2, to = nlevels(ae_arm$arm)*2, by = 2)] <- paste0(patient_n, "/", patient_N,
-                                                                       " (", formatC(100 * patient_p, digits, format = "f"), "%)")
+  #only show fullfreq when specify - hungttt
+  if (fullfreq) {value[, seq(from = 2, to = nlevels(ae_arm$arm)*2, by = 2)] <- paste0(patient_n, "/", patient_N,
+                                                                       " (", formatC(100 * patient_p, digits, format = "f"), "%)")}
+  else {value[, seq(from = 2, to = nlevels(ae_arm$arm)*2, by = 2)] <- paste0(patient_n,
+                                                                             " (", formatC(100 * patient_p, digits, format = "f"), "%)")}
   ## add raw values to 2 dummy columns for sorting purpose
   value[, (nlevels(ae_arm$arm)*2 + 1):(nlevels(ae_arm$arm)*3)] <- patient_n
   ae_value <- cbind(aename = levels(ae_arm$aetype), value)
@@ -412,6 +418,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
       return(out)
     })
     pval[is.na(pval)] <- "-"
+    if (test.anyae.only) {pval[-1] <- ""} #only show test result for anyae - hungtt
 
     ## add grouping row - trinhdhk
     # browser()
@@ -491,6 +498,8 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
   ae_value <- ae_value[,-(nlevels(ae_arm$arm)*2 + 2):-(nlevels(ae_arm$arm)*3+1)]
   ae_value <- as.matrix(ae_value) #convert back to matrix to avoid conflicts
   colnames(ae_value) <- NULL
+
+
   ## output
   ### header
   gr.lev <- levels(ae_arm$arm)
@@ -510,7 +519,10 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
                                       "Chi-squared test if applicable and Fisher if expected value under null <1"))} else NULL,
               footer)
 
-  ### flextable
+
+  if (matrix.raw) {tab <- ae_value}
+  else
+  {### flextable
   if (flextable) {
     requireNamespace("flextable")
     requireNamespace("officer")
@@ -586,6 +598,6 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
     }
     class(tab$table) <- c('ae_tbl', 'ss_tbl', class(tab$table))
   }
-  if (!flextable) class(tab) <- c('ss_ae','ss_obj')
+  if (!flextable) class(tab) <- c('ss_ae','ss_obj')}
   return(tab)
 }
