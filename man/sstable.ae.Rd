@@ -93,6 +93,8 @@ Be aware that even when chisq.test==TRUE, if expected values are < 1, the later 
 
 \item{na.text}{[`(Missing)`] in-placed text for missing AE}
 
+\item{matrix.raw}{a logical values specifies whether output will be a draw dataframe.}
+
 \item{footer}{a vector of strings to be used as footnote of table.}
 
 \item{flextable}{a logical value specifies whether output will be a flextable-type table.}

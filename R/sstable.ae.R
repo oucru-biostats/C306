@@ -41,6 +41,7 @@
 #' @param group.var.priority a vector that specifies which groups will be appear first in the table.
 #' @param print.aetype.header a logical value, whether to print the label of aetype.header.
 #' @param na.text [`(Missing)`] in-placed text for missing AE
+#' @param matrix.raw a logical values specifies whether output will be a draw dataframe.
 #'
 #' @return a flextable-type table or a list with values/headers/footers
 #' @import dplyr
