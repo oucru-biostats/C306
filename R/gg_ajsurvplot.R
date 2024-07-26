@@ -148,7 +148,7 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
   facet.vars <- formula.tools::get.vars(facet.by)
   for (v in facet.vars) dt$strata <-
     sapply(strsplit(as.character(dt$strata), ', '),
-           function(x) subset(x, !grepl(paste0(v,'='), x, fixed=TRUE))|>paste(collapse=', '))
+           function(x) x[!grepl(paste0(v,'='), x, fixed=TRUE)]|>paste(collapse=', '))
 
   if (all(dt$strata == '')) plt <- ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, group=Event))
   else if (!isFALSE(monochrome)) {
