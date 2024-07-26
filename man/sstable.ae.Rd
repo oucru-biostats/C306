@@ -16,10 +16,12 @@ sstable.ae(
   arm.var,
   sort.by,
   digits = 0,
+  fullfreq = FALSE,
   test = TRUE,
+  test.anyae.only = TRUE,
   pdigits = 3,
   pcutoff = 0.001,
-  chisq.test = FALSE,
+  chisq.test = TRUE,
   correct = FALSE,
   simulate.p.value = FALSE,
   B = 2000,
@@ -28,6 +30,7 @@ sstable.ae(
   print.aetype.header = length(aetype.var) > 1 | any(length(names(aetype.var)) > 0) |
     any(isTRUE(nchar(names(aetype.var)) > 0)),
   na.text = "(Missing)",
+  matrix.raw = FALSE,
   footer = NULL,
   flextable = TRUE,
   bg = "#F2EFEE"
@@ -59,7 +62,14 @@ A minus sign indicates a descending order.}
 
 \item{digits}{a number specifies number of significant digits for numeric statistics.}
 
+\item{fullfreq}{a logical value specifies whether to show total frequency as a denominator}
+
 \item{test}{a logical value specifies whether a statistical test will be performed to compare between treatment arms.}
+
+\item{test.anyae.only}{a logical value specifies whether a statistical test will be performed for all variable or only for any adverse events.
+
+
+Be aware that even when chisq.test==TRUE, if expected values are < 1, the later test will take over.}
 
 \item{pdigits}{a number specifies number of significant digits for p value.}
 

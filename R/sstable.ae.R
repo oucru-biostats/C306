@@ -24,6 +24,8 @@
 #' @param pcutoff a number specifies threshold value of p value to be displayed as "< pcutoff".
 #' @param chisq.test
 #' a logical value specifies whether Chi-squared test or Fisher's exact test will be used to compare between treatment arms.
+#'
+#' Be aware that even when chisq.test==TRUE, if expected values are < 1, the later test will take over.
 #' @param test.anyae.only  a logical value specifies whether a statistical test will be performed for all variable or only for any adverse events.
 #'
 #'
