@@ -162,7 +162,7 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
     plt <- ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, linetype=Event, color=strata, fill=strata))
     if (ci) plt <- plt +  ggsurvfit::stat_stepribbon(alpha=.3, color='transparent')
     plt <- plt +  geom_step(linewidth=1) +
-      scale_linetype_manual(values=rep('solid',2), guides=NULL)
+      scale_linetype_manual(values=rep('solid',2), guide=NULL)
   }
 
   plt + ggsurvfit::theme_ggsurvfit_default() + facet
