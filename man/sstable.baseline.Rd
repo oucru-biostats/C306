@@ -86,7 +86,7 @@ If formula is in the form of x+y ~ a|z, the function will summary z with respect
 
 \item{bg}{a character specifies color of the odd rows in the body of flextable-type table.}
 
-\item{df}{a logical values specifies whether output will be a draw dataframe.}
+\item{matrix.raw}{a logical values specifies whether output will be a draw dataframe.}
 }
 \value{
 a flextable-type table or a list with values/headers/footers

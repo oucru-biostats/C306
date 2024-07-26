@@ -32,7 +32,7 @@
 #' @param footer a vector of strings to be used as footnote of table.
 #' @param flextable a logical value specifies whether output will be a flextable-type table.
 #' @param bg a character specifies color of the odd rows in the body of flextable-type table.
-#' @param df a logical values specifies whether output will be a draw dataframe.
+#' @param matrix.raw a logical values specifies whether output will be a draw dataframe.
 #'
 #' @return a flextable-type table or a list with values/headers/footers
 #' @export
