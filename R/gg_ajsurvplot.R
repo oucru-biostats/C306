@@ -131,7 +131,7 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
   gargs <- match.call()[-1]
   gargs <- as.list(gargs[setdiff(names(gargs), names(dot))])
   gargs$facet.by <- gargs$ci <- gargs$monochrome <- NULL
-  dt <- do.call(tidy_competingevent(, gargs))
+  dt <- do.call(tidy_competingevent, gargs)
 
   # facet <- if (formula.tools::is.formula(facet.by)) if (length(formula.tools::lhs.vars(facet.by)))
     # facet_grid(facet.by) else facet_wrap(facet.by)
