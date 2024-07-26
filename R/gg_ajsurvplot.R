@@ -74,24 +74,19 @@ tidy_survfit2 <- function(x, times=NULL, type='survival'){
     untidy_strata()
 }
 
-#' Plot 2 Aalen-Johansen curves with ggplot for competing risks
+#' Tidy competing risk mstate survival fit.
 #' @description
-#' Extend \link[ggsurvfit:ggsurvfit]{ggsurvfit} functionality to plot competing risk curve, with main risk and competing risk in one plot
-#'
+#' This complements gg_ajurvplot2, provides the intermediate data for advanced ggplot manipulation
 #' @param formula A standard model formula, with survival on the left and covariates on the right
 #' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model
 #' @param weights,subset,na.action,,count,id,timefix parameter passed to finegray model. See \code{\link[survival:finegray]{finegray}},
 #' @param main.event,competing.event main and competing event to plot
-#' @param facet.by formula. default to all strata
-#' @param ... optional parameters passed to \code{ggsurvplot}.
-#' @param .return_data [FALSE] if TRUE, get the data instead.
-#' @import ggplot2
+#' @param ... other parameters passed to finegray (excluding etype)
+#' @return a tibble
 #' @export
-gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event, competing.event, facet.by = ~strata, count, id, timefix, ..., .return_data=FALSE){
+tidy_competingevent <- function(formula, data, weights, subset, na.action, main.event, competing.event, count, id, timefix, ...){
   dot <- list(...)
   fgargs <- match.call()[-1]
-  fgargs$facet.by <- NULL
-  fgargs$.return_data <- NULL
   fgargs <- as.list(fgargs[setdiff(names(fgargs), names(dot))])
 
   etypes <- with(fgargs, list(main.event, competing.event))
@@ -113,8 +108,26 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
   tidy1 <- tidy_survfit2(sf1, type='risk') |> mutate(Event = main.event)
   tidy2 <- tidy_survfit2(sf2, type='survival') |> mutate(Event = competing.event)
 
-  dt <- rbind(tidy1, tidy2)
-  if (.return_data) return(dt)
+  rbind(tidy1, tidy2) |> tibble::as_tibble()
+}
+
+#' Plot 2 Aalen-Johansen curves with ggplot for competing risks
+#' @description
+#' Extend \link[ggsurvfit:ggsurvfit]{ggsurvfit} functionality to plot competing risk curve, with main risk and competing risk in one plot
+#'
+#' @param formula A standard model formula, with survival on the left and covariates on the right
+#' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model
+#' @param weights,subset,na.action,,count,id,timefix parameter passed to finegray model. See \code{\link[survival:finegray]{finegray}},
+#' @param main.event,competing.event main and competing event to plot
+#' @param facet.by formula. default to all strata
+#' @param ci [TRUE] Plot confidence band?
+#' @param monochrome [FALSE] plot in monochrome? either FALSE (default) or a string of color, TRUE is equivalent to "black"
+#' @param ... other parameters passed to finegray (excluding etype)
+#' @import ggplot2
+#' @export
+gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event, competing.event, facet.by = ~strata, count, id, timefix, ci=TRUE, monochrome = FALSE, ...){
+
+  dt <- tidy_competingevent(formula, data, weights, subset, na.action, main.event, competing.event, count, id, timefix, ...)
 
   # facet <- if (formula.tools::is.formula(facet.by)) if (length(formula.tools::lhs.vars(facet.by)))
     # facet_grid(facet.by) else facet_wrap(facet.by)
@@ -131,12 +144,23 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
   facet.vars <- formula.tools::get.vars(facet.by)
   for (v in facet.vars) dt$strata <- gsub(
     paste0('(,\\s)?',v,'=.*(,\\s|$)'), '', dt$strata, perl=T)
-  plt <- if (all(dt$strata == ''))
-   ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, group=Event))
-  else
-    ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, fill=Event, color=strata))
-  plt +
-    geom_step(linewidth=1) +
-    ggsurvfit::theme_ggsurvfit_default() + facet
+  if (all(dt$strata == '')) plt <- ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, group=Event))
+  else if (!isFALSE(monochrome)) {
+    plt <- ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, linetype=strata, color=Event))
+    if (ci) plt <- plt +
+      ggsurvfit::stat_stepribbon(alpha=.5, linewidth=.2, fill='transparent')
+    plt <-  plt +
+      geom_step(linewidth=1) +
+      scale_color_manual(values=rep(if (isTRUE(monochrome)) 'black' else as.character(monochrome),2), guide=NULL)
+  }
+
+  else {
+    plt <- ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, linetype=Event, color=strata, fill=strata))
+    if (ci) plt <- plt +  ggsurvfit::stat_stepribbon(alpha=.3, color='transparent')
+    plt <- plt +  geom_step(linewidth=1) +
+      scale_linetype_manual(values=rep('solid',2), guides=NULL)
+  }
+
+  plt + ggsurvfit::theme_ggsurvfit_default() + facet
 
 }
