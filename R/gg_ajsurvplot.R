@@ -146,8 +146,10 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
     )
   # browser()
   facet.vars <- formula.tools::get.vars(facet.by)
-  for (v in facet.vars) dt$strata <- gsub(
-    paste0('(,\\s)?',v,'=.*(,\\s|$)'), '', dt$strata, perl=T)
+  for (v in facet.vars) dt$strata <-
+    sapply(strsplit(as.character(dt$strata), ', '),
+           function(x) subset(x, !grepl(paste0(v,'='), x, fixed=TRUE))|>paste(collapse=', '))
+
   if (all(dt$strata == '')) plt <- ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, group=Event))
   else if (!isFALSE(monochrome)) {
     plt <- ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, linetype=strata, color=Event))
