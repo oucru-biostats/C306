@@ -47,7 +47,7 @@ ss_template <- function(sstable, template =  c('baseline', 'survcomp', 'ae')){
 #' @export
 ss_header <- function(sstable, rows) {
   sstable <- ss_legit(sstable)
-  if (!length(rownames(sstable))) rownames(sstable) <- 1:nrow(sstable)
+  if (!length(rownames(sstable))) rownames(sstable) <- seq_len(nrow(sstable))
   rownames(sstable)[rows] <- paste("header", seq_along(rows), sep=".")
   ss_table <- ss_template(sstable, template = NA)
   sstable
@@ -62,7 +62,7 @@ ss_header <- function(sstable, rows) {
 #' @export
 ss_body <- function(sstable, rows){
   sstable <- ss_legit(sstable)
-  if (!length(rownames(sstable))) rownames(sstable) <- 1:nrow(sstable)
+  if (!length(rownames(sstable))) rownames(sstable) <- seq_len(nrow(sstable))
   rownames(sstable)[rows] <- paste("body", seq_along(rows), sep=".")
   ss_table <- ss_template(sstable, template = NA)
   sstable
@@ -77,7 +77,7 @@ ss_body <- function(sstable, rows){
 #' @export
 ss_section <- function(sstable, rows){
   sstable <- ss_legit(sstable)
-  if (!length(rownames(sstable))) rownames(sstable) <- 1:nrow(sstable)
+  if (!length(rownames(sstable))) rownames(sstable) <- seq_len(nrow(sstable))
   rownames(sstable)[rows] <- paste("section", seq_along(rows), sep=".")
   ss_table <- ss_template(sstable, template = NA)
   sstable
@@ -134,7 +134,7 @@ ss_guess_format <- function(sstable){
 }
 
 ss_guess_format.default <- function(sstable){
-  guess <- sapply(1:nrow(sstable),
+  guess <- sapply(seq_len(nrow(sstable)),
                   function(i){
                     r <- sstable[i,]
                     if (isTRUE(grepl("header", rownames(sstable)[i]))) return("header")
@@ -146,7 +146,7 @@ ss_guess_format.default <- function(sstable){
 }
 
 ss_guess_format.ae_tbl <- function(sstable){
-  guess <- sapply(1:nrow(sstable),
+  guess <- sapply(seq_len(nrow(sstable)),
                   function(i){
                     if (i <= 2) return('header')
                     r <- sstable[i, ]
@@ -221,8 +221,8 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
       lapply(seq_along(header),
              function(i){
                h <- ss.header[i, ]
-               if (col.even) col <- 2:(ncol(sstable)-1)
-               else col <- 2:ncol(sstable)
+               if (col.even) col <- seq_len((ncol(sstable)-1))[-1]
+               else col <- seq_len(ncol(sstable))[-1]
                right_fill <- h[[max(col)]] != "" & h[[1]] == ""
 
                h <- sapply(seq_along(h),
@@ -238,7 +238,7 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
                         }
                         return(h[[j]])
                       })
-               names(h) <- paste0('V',1:ncol(sstable))
+               names(h) <- paste0('V',seq_len(ncol(sstable)))
                return(h)
              }
     )
@@ -254,13 +254,13 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
     for (i in seq_along(ss.header2)[-1])
       ft <- flextable::add_header_row(ft, values = ss.header2[[i]], top = F)
 
-  ft <- flextable::merge_h(ft, i = 1:(length(ss.header2)-1), part = "header")
+  ft <- flextable::merge_h(ft, i = seq_len(length(ss.header2)-1), part = "header")
   ft <- flextable::merge_v(ft, part = "header")
 
   ## footer format
   for (k in (seq_along(footer))) {
     ft <- flextable::add_footer(ft, V1 = footer[k], top = FALSE)
-    ft <- flextable::merge_at(ft, i = k, j = 1:ncol(sstable), part = "footer")
+    ft <- flextable::merge_at(ft, i = k, j = seq_len(ncol(sstable)), part = "footer")
   }
 
   ## section format
@@ -268,7 +268,7 @@ ss_flextable.default <- function(sstable, footer = NULL, bg = "#F2EFEE", ...){
 
     ### merging cells that from the left if the whole row is empty
     if (all(sstable[k, -1] == '') %in% TRUE)
-      ft <- flextable::merge_at(ft, i = k, j = 1:ncol(sstable), part = 'body')
+      ft <- flextable::merge_at(ft, i = k, j = seq_len(ncol(sstable)), part = 'body')
     else ft <- flextable::merge_h(ft, i = k , part = 'body')
 
     ft <- flextable::bold(ft, i = k-length(header), j = 1, part = 'body')
@@ -293,7 +293,7 @@ ft_sstheme <- function(ft, bg = "#F2EFEE"){
   ### faces of header
   ft <- flextable::bold(ft, part = "header")
    ### background
-  ft <- flextable::bg(ft, i = seq(from = 1, to = nrow(ft$body$dataset), by = 2), j = 1:ncol(ft$body$dataset),
+  ft <- flextable::bg(ft, i = seq(from = 1, to = nrow(ft$body$dataset), by = 2), j = seq_len(ncol(ft$body$dataset)),
                       bg = bg, part = "body")
   ### border
   tabbd <- officer::fp_border(color="black", width = 1.5)
@@ -419,7 +419,7 @@ ss_huxtable.default <- function(sstable, footer = NULL,
     }
   }
   # merge rows that have same values
-  for (i in 1:ncol(sstable)){
+  for (i in seq_len(ncol(sstable))){
     which.start <- 1
     for (j in seq_along(ss.header2)){
       if (j > 1){
@@ -518,7 +518,7 @@ ht_theme_kable <- function(ht, header_rows = 1:2, header_cols = NULL,
 
   for (header_row in header_rows){
     huxtable::bold(ht)[header_row, ] <- TRUE
-    for (col in 1:ncol(ht)){
+    for (col in seq_len(ncol(ht))){
       if (!is.na(ht[header_row, col]) & stringr::str_trim(ht[header_row, col]) != ''){
         huxtable::bottom_border(ht)[header_row, col] <- border_width
       }
