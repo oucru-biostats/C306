@@ -226,7 +226,7 @@ print.subgroup_logist_summary <- function(x, ...){
 #' @return
 #' If x is a simplified subgroup_logist_summary (aka a data.frame), return itself. Otherwise, a transposed list of class subgroup_logist_summary
 #' @seealso \link{t}
-#' @S3method t subgroup_logist_summary 
+#' @method t subgroup_logist_summary
 #' @author Trinh Dong Huu Khanh
 #' @export
 #' @examples

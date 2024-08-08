@@ -81,14 +81,15 @@ tidy_survfit2 <- function(x, times=NULL, type='survival'){
 #' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model
 #' @param weights,subset,na.action,,count,id,timefix parameter passed to finegray model. See \code{\link[survival:finegray]{finegray}},
 #' @param main.event,competing.event main and competing event to plot
+#' @param tidy_types [c(main='risk', competing='survival')] summarisiation for main and competing events
 #' @param ... other parameters passed to finegray (excluding etype)
 #' @return a tibble
 #' @export
-tidy_competingevent <- function(formula, data, weights, subset, na.action, main.event, competing.event, count, id, timefix, ...){
+tidy_competingevent <- function(formula, data, weights, subset, na.action, main.event, competing.event, count, id, timefix, tidy_types, ...){
   dot <- list(...)
   fgargs <- match.call()[-1]
   fgargs <- as.list(fgargs[setdiff(names(fgargs), names(dot))])
-
+  fgargs$tidy_types <- NULL
   etypes <- with(fgargs, list(main.event, competing.event))
   fgargs.each <- lapply(etypes, function(etype) {
     new.arg <- fgargs
@@ -96,7 +97,7 @@ tidy_competingevent <- function(formula, data, weights, subset, na.action, main.
     new.arg$main.event <- new.arg$competing.event <- NULL
     new.arg
   })
-
+  if(!names(tidy_types)) names(tidy_types) <- c('main', 'competing')
   fg1 <- do.call(survival::finegray, fgargs.each[[1]])
   fg2 <- do.call(survival::finegray, fgargs.each[[2]])
   # browser()
@@ -105,8 +106,8 @@ tidy_competingevent <- function(formula, data, weights, subset, na.action, main.
   sf1 <- eval(substitute(survival::survfit(fml, data = fg1,  weights=fgwt), list(fml=fml)))
   sf2 <- eval(substitute(survival::survfit(fml, data = fg2,  weights=fgwt), list(fml=fml)))
 
-  tidy1 <- tidy_survfit2(sf1, type='risk') |> mutate(Event = main.event)
-  tidy2 <- tidy_survfit2(sf2, type='survival') |> mutate(Event = competing.event)
+  tidy1 <- tidy_survfit2(sf1, type=tidy_types[['main']]) |> mutate(Event = main.event)
+  tidy2 <- tidy_survfit2(sf2, type=tidy_types[['competing']]) |> mutate(Event = competing.event)
 
   rbind(tidy1, tidy2) |> tibble::as_tibble()
 }
@@ -122,15 +123,20 @@ tidy_competingevent <- function(formula, data, weights, subset, na.action, main.
 #' @param facet.by formula. default to all strata
 #' @param ci [TRUE] Plot confidence band?
 #' @param monochrome [FALSE] plot in monochrome? either FALSE (default) or a string of color, TRUE is equivalent to "black"
+#' @param type ['alternate'] plot in alternative or overlaid style?
 #' @param ... other parameters passed to finegray (excluding etype)
 #' @import ggplot2
 #' @export
-gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event, competing.event, facet.by = ~strata, count, id, timefix, ci=TRUE, monochrome = FALSE, ...){
+gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event, competing.event, facet.by = ~strata, count, id, timefix, ci=TRUE, monochrome = FALSE, type=c('alternate', 'overlaid'), ...){
 
   dot <- list(...)
   gargs <- match.call()[-1]
   gargs <- as.list(gargs[setdiff(names(gargs), names(dot))])
   gargs$facet.by <- gargs$ci <- gargs$monochrome <- NULL
+  type = match.arg(type)
+  gargs$tidy_type <- c(main='risk', competing='survival')
+  if (type == 'overlaid') gargs$tidy_type[['competing']] <- 'risk'
+
   dt <- do.call(tidy_competingevent, gargs)
 
   # facet <- if (formula.tools::is.formula(facet.by)) if (length(formula.tools::lhs.vars(facet.by)))

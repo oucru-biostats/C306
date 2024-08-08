@@ -18,6 +18,7 @@ gg_ajsurvplot2(
   timefix,
   ci = TRUE,
   monochrome = FALSE,
+  type = c("alternate", "overlaid"),
   ...
 )
 }
@@ -35,6 +36,8 @@ gg_ajsurvplot2(
 \item{ci}{[TRUE] Plot confidence band?}
 
 \item{monochrome}{[FALSE] plot in monochrome? either FALSE (default) or a string of color, TRUE is equivalent to "black"}
+
+\item{type}{['alternate'] plot in alternative or overlaid style?}
 
 \item{...}{other parameters passed to finegray (excluding etype)}
 }

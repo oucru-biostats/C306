@@ -15,6 +15,7 @@ tidy_competingevent(
   count,
   id,
   timefix,
+  tidy_types,
   ...
 )
 }
@@ -26,6 +27,8 @@ tidy_competingevent(
 \item{weights, subset, na.action, , count, id, timefix}{parameter passed to finegray model. See \code{\link[survival:finegray]{finegray}},}
 
 \item{main.event, competing.event}{main and competing event to plot}
+
+\item{tidy_types}{[c(main='risk', competing='survival')] summarisiation for main and competing events}
 
 \item{...}{other parameters passed to finegray (excluding etype)}
 }
