@@ -97,7 +97,7 @@ tidy_competingevent <- function(formula, data, weights, subset, na.action, main.
     new.arg$main.event <- new.arg$competing.event <- NULL
     new.arg
   })
-  if(!names(tidy_types)) names(tidy_types) <- c('main', 'competing')
+  if(is.null(names(tidy_types))) names(tidy_types) <- c('main', 'competing')
   fg1 <- do.call(survival::finegray, fgargs.each[[1]])
   fg2 <- do.call(survival::finegray, fgargs.each[[2]])
   # browser()
