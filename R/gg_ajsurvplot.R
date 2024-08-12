@@ -141,17 +141,25 @@ gg_ajsurvplot2 <- function(formula, data, weights, subset, na.action, main.event
 
   # facet <- if (formula.tools::is.formula(facet.by)) if (length(formula.tools::lhs.vars(facet.by)))
     # facet_grid(facet.by) else facet_wrap(facet.by)
-  facet <- if (!is.null(facet.by))
-    if (length(formula.tools::lhs.vars(facet.by))) facet_grid(facet.by) else facet_wrap(facet.by)
 
-  if (is.null(facet.by))
-    return(
-      ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, fill=Event, color=strata)) +
-        geom_step(linewidth=1) +
-        ggsurvfit::theme_ggsurvfit_default()
-    )
+  # if (is.null(facet.by))
+  # {
+  #   plt <- ggplot(dt,aes(x=time, y=estimate, ymin=conf.low, ymax=conf.high, linetype=Event, color=strata, fill=strata)) +
+  #     geom_step(linewidth=1)
+  #
+  #     if (ci) plt <- plt +  ggsurvfit::stat_stepribbon(alpha=.3, color='transparent')
+  #     plt <- plt + ggsurvfit::theme_ggsurvfit_default()
+  #     return(plt)
+  # }
+
   # browser()
-  facet.vars <- formula.tools::get.vars(facet.by)
+  facet <- facet.vars <- NULL
+  if (!is.null(facet.by)){
+    facet <-
+      if (length(formula.tools::lhs.vars(facet.by))) facet_grid(facet.by) else facet_wrap(facet.by)
+    facet.vars <- formula.tools::get.vars(facet.by)
+  }
+
   for (v in facet.vars) dt$strata <-
     sapply(strsplit(as.character(dt$strata), ', '),
            function(x) x[!grepl(paste0(v,'='), x, fixed=TRUE)]|>paste(collapse=', '))
