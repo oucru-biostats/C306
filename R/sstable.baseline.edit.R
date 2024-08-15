@@ -151,6 +151,19 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
       label_list[i] <- var_name
     }
   }
+  # update order of variable customize for sstable.baseline.edit - hungtt
+  value <- as.data.frame(value)
+  dummy_df <- data.frame(V1= varname, order =seq(1:length(varname))*1000)
+  value <- full_join(value, dummy_df)
+
+  for (i in 1:nrow(value))
+    {if (is.na(value[i,ncol(value)])) {value[i,ncol(value)] <- (value[i-1,ncol(value)]) + 1}}
+
+  # Assuming "a" is your data frame
+  value <- value %>% arrange(value[[ncol(value)]])
+  value <- value[, -ncol(value)]
+  value
+
   ## output
   ### header
   gr.lev <- levels(y)
