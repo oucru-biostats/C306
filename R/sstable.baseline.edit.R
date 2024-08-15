@@ -152,6 +152,7 @@ sstable.baseline.edit <- function(value, formula, data, bycol = TRUE, pooledGrou
     }
   }
   # update order of variable customize for sstable.baseline.edit - hungtt
+  value <- as.data.frame(value)
   dummy_df <- data.frame(V1= varname, order =seq(1:length(varname))*1000)
   value <- full_join(value, dummy_df)
 
