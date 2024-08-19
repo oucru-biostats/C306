@@ -1775,7 +1775,11 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
       compare.args$data <- data
       type <- if (is.null(compare.args$type)) 'diff' else compare.args$type
       compare.args$type <- NULL
-      compare.args$link <- switch(type, "diff" = 'identity', "ratio" = 'log', 'lost.ratio' = 'log')
+      compare.args$link <- switch(type,
+                                  "lost.diff" = 'identity',
+                                  "diff" = 'identity',
+                                  "ratio" = 'log',
+                                  'lost.ratio' = 'log')
       if (is.null(compare.args$model.censoring)) compare.args$model.censoring <- 'stratified'
       if (is.null(compare.args$formula.censoring)) compare.args$formula.censoring <- as.formula(paste0("~`", arm.var, '`'))
       # Extract the time from Surv object with the arm included
@@ -1797,7 +1801,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
       }
       # If type == lost.ratio then reverse the time
       # i.e. Surv(tau - ev_time, ev) ~ .
-      if (type == 'lost.ratio') {
+      if (type == 'lost.ratio' && !ms) {
         if (compare.method == 'cuminc') stop('type lost.ratio is meaningless in cuminc comparison.')
         model.lhs <- formula.tools::lhs(model)
         for (i in 2:(length(model.lhs)-1)) {
@@ -1809,13 +1813,19 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
         compare.args$formula <- model
       }
 
+      if (type=='ratio' && ms) {
+        stop('Don\'t know how to quantify RMST ratio for competing risks. See ?rmeanglm for more details.')
+      }
+
       # Perform rmeanglm
       # rmeanglm <- eventglm::rmeanglm
       fitter <- if (compare.method == 'rmst') eventglm::rmeanglm else eventglm::cumincglm
       fit.rmst <- do.call(fitter, compare.args)
       est <- coef(fit.rmst)[2:(length(arm.names))] # get the coef for arm
       invlink <- fit.rmst$family$linkinv
-      if (type=='diff') invlink <- function(x) -x # loss.diff=-diff
+      # i don't know why but rmeanglm decides to quantify RMST for non-ms and
+      # RMTL for ms models.
+      if ((type=='diff' && ms)|(type=='lost.diff'&&!ms)) invlink <- function(x) -x # loss.diff=-diff
       diff <- formatC(invlink(est), digits, format = "f")
 
       result[3, length(arm.names) + 1] <-
