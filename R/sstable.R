@@ -1679,7 +1679,9 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
   events.n <- paste(n.event, fit.surv$n, sep = "/")
   if (add.risk) {
     # cumhaz <- if (ms) fit.surv$cumhaz[, this_cause-1] else fit.surv$cumhaz
-    risk <- n.event / with(fit.surv, n.event+n.risk+n.censor)
+    risk <- if (ms)
+      n.event / with(fit.surv, n.event[,this_cause]+n.risk[,this_cause]+n.censor[,this_cause]) else
+      n.event / with(fit.surv, n.event+n.risk+n.censor)
     events.n <- paste(events.n,
                       " (", formatC(100*(risk), digits, format = "f"), ")", sep="")
   }
