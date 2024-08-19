@@ -1526,7 +1526,7 @@ sstable.ae <- function(ae_data, fullid_data, group_data = NULL, id.var,
 #'
 #' @param model a formula which can be used to fit the survival model. This formula can include other covariates than arm BUT arm must be the first covariate in the model.
 #' @param data a data frame to fit the survival model.
-#' @param add.risk [\code{TRUE}] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.
+#' @param add.risk [\code{TRUE}] a logical value specifies whether the event probability ("absolute risk")
 #' @param time [\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 #' (minimax of the observed time across two arms in RMST model)
 #' @param reference.arm [\code{B}] reference arm, default to the second arm ("B"), change to "A" for base on the first arm
@@ -1678,9 +1678,10 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
   n.event <- if (ms) fit.surv$n.event[,this_cause] else fit.surv$n.event
   events.n <- paste(n.event, fit.surv$n, sep = "/")
   if (add.risk) {
-    cumhaz <- if (ms) fit.surv$cumhaz[, this_cause-1] else fit.surv$cumhaz
+    # cumhaz <- if (ms) fit.surv$cumhaz[, this_cause-1] else fit.surv$cumhaz
+    risk <- n.event / with(fit.surv, n.event+n.risk+n.censor)
     events.n <- paste(events.n,
-                      " (", formatC(100*(cumhaz), digits, format = "f"), ")", sep="")
+                      " (", formatC(100*(risk), digits, format = "f"), ")", sep="")
   }
   idx <- which(arm.names %in% unique(data[, arm.var]))
   result[3, 1:length(arm.names)] <- rep("-", length(arm.names))
