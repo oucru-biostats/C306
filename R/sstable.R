@@ -1815,7 +1815,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
       fit.rmst <- do.call(fitter, compare.args)
       est <- coef(fit.rmst)[2:(length(arm.names))] # get the coef for arm
       invlink <- fit.rmst$family$linkinv
-      if (type=='lost.diff') invlink <- function(x) -x # loss.diff=-diff
+      if (type=='diff') invlink <- function(x) -x # loss.diff=-diff
       diff <- formatC(invlink(est), digits, format = "f")
 
       result[3, length(arm.names) + 1] <-
