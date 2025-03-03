@@ -1600,7 +1600,7 @@ sstable.survcomp <- function(
 
   # Prepare survfit
   time2 <- if (time == Inf) .Machine$integer.max else time
-  rmeantime <- if (time == Inf) max(mf[[1]][, 'time'])
+  rmeantime <- if (time == Inf) max(mf[[1]][, 'time']) else time
   fit.surv0 <- survival::survfit(update(model, new = as.formula(paste0(". ~ ", arm.var))), data = data)
   # [Trinhdhk] Use integer.max instead of Inf b/c summary.survfit does not want Inf anymore. 05/24
 
@@ -1647,7 +1647,7 @@ sstable.survcomp <- function(
   summary.stats <- if (compare.method%in%c('cox', 'cuminc')) {
     ifelse(add.risk, "events/n (risk [%])", "events/n")
   } else {
-    unit <- getElement(attr(mf[,1], 'inputAttributes')$time, 'unit') %||% getElement(compare.args, 'unit')
+    unit <- getElement(compare.args, 'unit') %||% getElement(attr(mf[,1], 'inputAttributes')$time, 'unit')
     if (grepl('RMST', compare.stat)) paste0("RMST (SE", if (!is.null(unit)) paste(',', unit), ')')
     else paste0("RMTL (SE", if (!is.null(unit)) paste(',', unit), ')')
   }
