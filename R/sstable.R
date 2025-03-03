@@ -1648,7 +1648,7 @@ sstable.survcomp <- function(
   } else {
     unit <- getElement(attr(mf[,1], 'inputAttributes')$time, 'unit')
     if (grepl('RMST', compare.stat)) paste0("RMST (SE", if (!is.null(unit)) paste(',', unit), ')')
-    else return(paste0("RMTL (SE", if (!is.null(unit)) paste(',', unit), ')'))
+    else paste0("RMTL (SE", if (!is.null(unit)) paste(',', unit), ')')
   }
   header2 <- c(rep(summary.stats, length(arm.names)), paste(compare.stat, if (p.compare) "(95%CI); p-value" else "(95%CI)"))
   header <- rbind(header1, header2)
