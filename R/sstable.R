@@ -1704,7 +1704,7 @@ sstable.survcomp <- function(
        r.setime <- fit.surv$table[1, 'se(rmean)']
      }
 
-     result[3, idx] <- paste(r.time, '(', r.setime,')')
+     events.n <- paste(r.time, '(', r.setime,')')
    }
 
   } else {
@@ -1720,8 +1720,8 @@ sstable.survcomp <- function(
                         " (", formatC(100*(risk), digits, format = "f"), ")", sep="")
     }
 
-    result[3, idx] <- events.n
   }
+  result[3, idx] <- events.n
 
 
 
