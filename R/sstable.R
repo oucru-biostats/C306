@@ -1703,10 +1703,8 @@ sstable.survcomp <- function(
        r.time <- fit.surv$table[1, 'rmean']
        r.setime <- fit.surv$table[1, 'se(rmean)']
      }
-
-     events.n <- paste(r.time, '(', r.setime,')')
    }
-
+    events.n <- paste(r.time, '(', r.setime,')')
   } else {
     n.event <- if (ms) fit.surv$n.event[,this_cause] else fit.surv$n.event
     events.n <- paste(n.event, fit.surv$n, sep = "/")
