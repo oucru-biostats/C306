@@ -2091,6 +2091,7 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, overall.model,
         }
       } else {
         ia.args <- compare.args
+        ia.args$unit <- NULL
         ia.args$add.prop.haz.test <- NULL
         # ia.args$formula <- ia.model
         ia.args$data <- data
@@ -2140,7 +2141,10 @@ sstable.survcomp.subgroup <- function(base.model, subgroup.model, overall.model,
           test <- aod::wald.test(vcov(ia.fit), b=ia.terms, Terms=test.terms)
           test$result$chi2['P']
         },
-        error=\(e) NA
+        error=\(e) {
+          # browser()
+          NA
+        }
         )
 
       }
