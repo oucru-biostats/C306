@@ -1613,7 +1613,9 @@ sstable.survcomp <- function(
     if (is.null(compare.args$cause)) compare.args$cause <- all_causes[[1]]
     if (!compare.args$cause %in% all_causes)
       stop('Specified cause is not available in the list of causes.
-If you are running this in survcomp.subgroup, perhaps in one subgroup an event did not happen. I don\'t know how to fix this.')
+
+      If you are seeing this error when running survcomp.subgroup, perhaps in one subgroup an event did not happen.
+           I don\'t know how to fix this.')
     this_cause <- which(all_causes == compare.args$cause)+1
   }
 
@@ -1627,7 +1629,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
                                      diff = 'Cumul.inc difference',
                                      ratio = 'Cumul.inc ratio',
                                      stop('Illegal type for cumulative incidence comparison model')),
-                         rmst = if (is.null(compare.args$type)) 'RMST difference'
+                         rmst = if (is.null(compare.args$type)) 'RMTL difference'
                          else switch(compare.args$type,
                                      diff = 'RMST difference',
                                      lost.diff = 'RMTL difference',
@@ -1635,7 +1637,20 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
                                      lost.ratio = 'RMTL ratio',
                                      stop('Illegal type for RMST comparison model')))
 
-  header2 <- c(rep(ifelse(add.risk, "events/n (risk [%])", "events/n"), length(arm.names)), paste(compare.stat, if (p.compare) "(95%CI); p-value" else "(95%CI)"))
+  if (ms && compare.args$type%in%c('diff', 'ratio')){
+    stop('RMST not implemented for competing risks')
+  }
+
+  summary.stats <- if (compare.method%in%c('cox', 'cuminc')) {
+    ifelse(add.risk, "events/n (risk [%])", "events/n")
+  } else {
+    unit <- attr(mf[,1], 'inputAttributes')$time$unit
+    if (grepl('RMST', compare.stat))
+      return(paste0("RMST (SE", if (!is.null(unit)) paste(',', unit), ')'))
+    return(paste0("RMTL (SE", if (!is.null(unit)) paste(',', unit), ')'))
+
+  }
+  header2 <- c(rep(summary.stats, length(arm.names)), paste(compare.stat, if (p.compare) "(95%CI); p-value" else "(95%CI)"))
   header <- rbind(header1, header2)
   result <- rbind(header, "")
 
@@ -1664,7 +1679,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
   # Descriptive analysis ---------------------------
   # add number of events and risks
 
-  fit.surv <- summary(fit.surv0, time = time2, extend = TRUE)
+  fit.surv <- summary(fit.surv0, time = time2, extend = TRUE, rmean = time2)
 
   # [Trinhdhk] This is crap as always returns at inf
   # if (length(unique(data[, arm.var])) < length(arm.names)) {
@@ -1675,20 +1690,39 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
   #   tmp <- fit.surv$table
   # }
   # browser()
-  n.event <- if (ms) fit.surv$n.event[,this_cause] else fit.surv$n.event
-  events.n <- paste(n.event, fit.surv$n, sep = "/")
-  if (add.risk) {
-    # cumhaz <- if (ms) fit.surv$cumhaz[, this_cause-1] else fit.surv$cumhaz
-    # risk <- if (ms)
-    #   n.event / with(fit.surv, n.event[,this_cause]+n.risk[,this_cause]+n.censor[,this_cause]) else
-    #   n.event / with(fit.surv, n.event+n.risk+n.censor)
-    risk <- n.event / fit.surv$n
-    events.n <- paste(events.n,
-                      " (", formatC(100*(risk), digits, format = "f"), ")", sep="")
-  }
+
   idx <- which(arm.names %in% unique(data[, arm.var]))
   result[3, 1:length(arm.names)] <- rep("-", length(arm.names))
-  result[3, idx] <- events.n
+  # If compare.method is 'rmst' then something else should return
+  if (compare.method == 'rmst'){
+   if (ms || grepl('RMTL', compare.stat)) {
+     r.time <- fit.surv$table[this_cause, 'rmean']
+     r.setime <- fit.surv$table[this_cause, 'se(rmean)']
+   } else {
+     if (grepl('RMST', compare.stat)){
+       r.time <- fit.surv$table[1, 'rmean']
+       r.setime <- fit.surv$table[1, 'se(rmean)']
+     }
+
+     result[3, idx] <- paste(r.time, '(', r.setime,')')
+   }
+
+  } else {
+    n.event <- if (ms) fit.surv$n.event[,this_cause] else fit.surv$n.event
+    events.n <- paste(n.event, fit.surv$n, sep = "/")
+    if (add.risk) {
+      # cumhaz <- if (ms) fit.surv$cumhaz[, this_cause-1] else fit.surv$cumhaz
+      # risk <- if (ms)
+      #   n.event / with(fit.surv, n.event[,this_cause]+n.risk[,this_cause]+n.censor[,this_cause]) else
+      #   n.event / with(fit.surv, n.event+n.risk+n.censor)
+      risk <- n.event / fit.surv$n
+      events.n <- paste(events.n,
+                        " (", formatC(100*(risk), digits, format = "f"), ")", sep="")
+    }
+
+    result[3, idx] <- events.n
+  }
+
 
 
 
@@ -1774,7 +1808,7 @@ If you are running this in survcomp.subgroup, perhaps in one subgroup an event d
       compare.args$add.prop.haz.test <- NULL
       compare.args$formula <- model
       compare.args$data <- data
-      type <- if (is.null(compare.args$type)) 'diff' else compare.args$type
+      type <- if (is.null(compare.args$type)) 'lost.diff' else compare.args$type
       compare.args$type <- NULL
       compare.args$link <- switch(type,
                                   "lost.diff" = 'identity',
