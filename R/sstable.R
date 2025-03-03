@@ -1696,15 +1696,17 @@ sstable.survcomp <- function(
   result[3, 1:length(arm.names)] <- rep("-", length(arm.names))
   # If compare.method is 'rmst' then something else should return
   if (compare.method == 'rmst'){
-   if (ms || grepl('RMTL', compare.stat)) {
+   if (ms) {
      i <- (length(arm.names) * (this_cause-1)+1):(length(arm.names) * this_cause)
      r.time <- fit.surv$table[i, 'rmean'] |> formatC(digits, format = "f")
      r.setime <- fit.surv$table[i, 'se(rmean)'] |> formatC(digits, format = "f")
    } else {
-     if (grepl('RMST', compare.stat)){
-       r.time <- fit.surv$table[1:length(arm.names), 'rmean'] |> formatC(digits, format = "f")
-       r.setime <- fit.surv$table[1:length(arm.names), 'se(rmean)'] |> formatC(digits, format = "f")
+     r.time <- fit.surv$table[1:length(arm.names), 'rmean']
+     r.setime <- fit.surv$table[1:length(arm.names), 'se(rmean)'] |> formatC(digits, format = "f")
+     if (grepl('RMTL', compare.stat)){
+       r.time <- rmeantime - r.time
      }
+     r.time <- formatC(r.time, digits, format = "f")
    }
     events.n <- paste0(r.time, '(', r.setime,')')
   } else {
