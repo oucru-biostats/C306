@@ -1600,11 +1600,13 @@ sstable.survcomp <- function(
 
   # Prepare survfit
   time2 <- if (time == Inf) .Machine$integer.max else time
+  rmeantime <- if (time == Inf) max(mf[[1]][, 'time'])
   fit.surv0 <- survival::survfit(update(model, new = as.formula(paste0(". ~ ", arm.var))), data = data)
   # [Trinhdhk] Use integer.max instead of Inf b/c summary.survfit does not want Inf anymore. 05/24
 
   # Check for competing risk aka mstate -trinhdhk
   ms <- inherits(fit.surv0, 'survfitms')
+  this_cause <- 2
   if (ms) {
     all_causes <- attr(mf[[1]], 'states')
     if(length(unique(mf[[1]][,2]))<2)
@@ -1645,10 +1647,8 @@ sstable.survcomp <- function(
     ifelse(add.risk, "events/n (risk [%])", "events/n")
   } else {
     unit <- getElement(attr(mf[,1], 'inputAttributes')$time, 'unit')
-    if (grepl('RMST', compare.stat))
-      return(paste0("RMST (SE", if (!is.null(unit)) paste(',', unit), ')'))
-    return(paste0("RMTL (SE", if (!is.null(unit)) paste(',', unit), ')'))
-
+    if (grepl('RMST', compare.stat)) paste0("RMST (SE", if (!is.null(unit)) paste(',', unit), ')')
+    else return(paste0("RMTL (SE", if (!is.null(unit)) paste(',', unit), ')'))
   }
   header2 <- c(rep(summary.stats, length(arm.names)), paste(compare.stat, if (p.compare) "(95%CI); p-value" else "(95%CI)"))
   header <- rbind(header1, header2)
@@ -1679,7 +1679,7 @@ sstable.survcomp <- function(
   # Descriptive analysis ---------------------------
   # add number of events and risks
 
-  fit.surv <- summary(fit.surv0, time = time2, extend = TRUE, rmean = time2)
+  fit.surv <- summary(fit.surv0, time = time2, extend = TRUE, rmean = rmeantime)
 
   # [Trinhdhk] This is crap as always returns at inf
   # if (length(unique(data[, arm.var])) < length(arm.names)) {

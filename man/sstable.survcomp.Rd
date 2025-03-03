@@ -28,7 +28,7 @@ sstable.survcomp(
 
 \item{data}{a data frame to fit the survival model.}
 
-\item{add.risk}{[\code{TRUE}] a logical value specifies whether the event probability ("absolute risk") at time "infinity" should be displayed.}
+\item{add.risk}{[\code{TRUE}] a logical value specifies whether the event probability ("absolute risk")}
 
 \item{time}{[\code{Inf}] the truncation time, affecting the descriptive and the RMST model, set to \code{Inf} to perform analyses at maximum time available
 (minimax of the observed time across two arms in RMST model)}
