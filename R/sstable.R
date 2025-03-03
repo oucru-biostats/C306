@@ -1647,7 +1647,7 @@ sstable.survcomp <- function(
   summary.stats <- if (compare.method%in%c('cox', 'cuminc')) {
     ifelse(add.risk, "events/n (risk [%])", "events/n")
   } else {
-    unit <- getElement(attr(mf[,1], 'inputAttributes')$time, 'unit')
+    unit <- getElement(attr(mf[,1], 'inputAttributes')$time, 'unit') %||% getElement(compare.args, 'unit')
     if (grepl('RMST', compare.stat)) paste0("RMST (SE", if (!is.null(unit)) paste(',', unit), ')')
     else paste0("RMTL (SE", if (!is.null(unit)) paste(',', unit), ')')
   }
@@ -1708,7 +1708,7 @@ sstable.survcomp <- function(
      }
      r.time <- formatC(r.time, digits, format = "f")
    }
-    events.n <- paste0(r.time, '(', r.setime,')')
+    events.n <- paste0(r.time, ' (', r.setime,')')
   } else {
     n.event <- if (ms) fit.surv$n.event[,this_cause] else fit.surv$n.event
     events.n <- paste(n.event, fit.surv$n, sep = "/")
@@ -1731,6 +1731,7 @@ sstable.survcomp <- function(
   # Comparison --------------------------------------
   # Re-base the arm factor
   if (reference.arm == 'B') data[, arm.var] <- ._lv_rev_(data[, arm.var])
+  compare.args$unit <- NULL
   if (compare.method == "cox"){
     if (!is.null(compare.args$add.prop.haz.test))
       add.prop.haz.test <- compare.args$add.prop.haz.test
