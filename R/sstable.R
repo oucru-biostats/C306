@@ -1644,7 +1644,7 @@ sstable.survcomp <- function(
   summary.stats <- if (compare.method%in%c('cox', 'cuminc')) {
     ifelse(add.risk, "events/n (risk [%])", "events/n")
   } else {
-    unit <- attr(mf[,1], 'inputAttributes')$time$unit
+    unit <- getElement(attr(mf[,1], 'inputAttributes')$time, 'unit')
     if (grepl('RMST', compare.stat))
       return(paste0("RMST (SE", if (!is.null(unit)) paste(',', unit), ')'))
     return(paste0("RMTL (SE", if (!is.null(unit)) paste(',', unit), ')'))
