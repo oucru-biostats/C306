@@ -1639,10 +1639,10 @@ sstable.survcomp <- function(
                                      lost.ratio = 'RMTL ratio',
                                      stop('Illegal type for RMST comparison model')))
 
-  if (ms && !is.null(compare.args$type)){
-    if(length(compare.args$type%in%c('diff', 'ratio')))
-      stop('RMST not implemented for competing risks')
-  }
+  # if (ms && !is.null(compare.args$type)){
+  #   if(compare.args$type%in%c('diff', 'ratio'))
+  #     stop('Summary in RMST not implemented for competing risks')
+  # }
 
   summary.stats <- if (compare.method%in%c('cox', 'cuminc')) {
     ifelse(add.risk, "events/n (risk [%])", "events/n")
